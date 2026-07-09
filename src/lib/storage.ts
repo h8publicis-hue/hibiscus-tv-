@@ -1,17 +1,12 @@
-import {
-  deleteObject,
-  getDownloadURL,
-  ref,
-  uploadBytesResumable,
-  type UploadTaskSnapshot,
-} from "firebase/storage";
-import { storage } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 
 export const IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 export const VIDEO_TYPES = ["video/mp4", "video/webm"];
 
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
 export const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
+
+const FUNCTIONS_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/functions/v1`;
 
 export function validateFile(file: File): { valid: boolean; error?: string } {
   const isImage = IMAGE_TYPES.includes(file.type);
@@ -35,6 +30,11 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
+/**
+ * Upload de mídia via Supabase Edge Function ("upload-content"). A function
+ * verifica o ID token do Firebase do usuário logado antes de gravar no
+ * Storage usando a chave secreta do Supabase (nunca exposta ao navegador).
+ */
 export function uploadContentFile(
   file: File,
   onProgress?: (percent: number) => void
@@ -46,28 +46,67 @@ export function uploadContentFile(
       return;
     }
 
-    const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `contents/${timestamp}_${safeName}`;
-    const storageRef = ref(storage, path);
-    const task = uploadBytesResumable(storageRef, file);
+    const user = auth.currentUser;
+    if (!user) {
+      reject(new Error("Você precisa estar autenticado para enviar arquivos."));
+      return;
+    }
 
-    task.on(
-      "state_changed",
-      (snapshot: UploadTaskSnapshot) => {
-        const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        onProgress?.(percent);
-      },
-      (error) => reject(error),
-      async () => {
-        const url = await getDownloadURL(task.snapshot.ref);
-        resolve({ url, path });
-      }
-    );
+    user
+      .getIdToken()
+      .then((idToken) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${FUNCTIONS_URL}/upload-content`);
+        xhr.setRequestHeader("Authorization", `Bearer ${idToken}`);
+
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            onProgress?.((event.loaded / event.total) * 100);
+          }
+        };
+
+        xhr.onload = () => {
+          let data: { url?: string; path?: string; error?: string } = {};
+          try {
+            data = JSON.parse(xhr.responseText);
+          } catch {
+            // resposta não-JSON tratada abaixo pelo status
+          }
+          if (xhr.status >= 200 && xhr.status < 300 && data.url && data.path) {
+            resolve({ url: data.url, path: data.path });
+          } else {
+            reject(new Error(data.error || "Falha no upload do arquivo."));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Falha no upload do arquivo."));
+        xhr.send(formData);
+      })
+      .catch(() => reject(new Error("Não foi possível validar sua sessão.")));
   });
 }
 
 export async function deleteContentFile(path: string) {
-  const storageRef = ref(storage, path);
-  return deleteObject(storageRef);
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("Você precisa estar autenticado para excluir arquivos.");
+  }
+  const idToken = await user.getIdToken();
+
+  const res = await fetch(`${FUNCTIONS_URL}/upload-content`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ path }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Falha ao excluir arquivo.");
+  }
 }

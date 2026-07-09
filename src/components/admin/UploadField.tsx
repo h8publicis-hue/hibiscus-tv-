@@ -46,9 +46,11 @@ export function UploadField({ value, path, onChange, accept = "all" }: UploadFie
       const result = await uploadContentFile(file, setProgress);
       onChange(result);
       toast.success("Arquivo enviado com sucesso!");
-    } catch {
-      setError("Falha no upload. Tente novamente.");
-      toast.error("Falha no upload do arquivo.");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Falha no upload. Tente novamente.";
+      setError(message);
+      toast.error(message);
     } finally {
       setProgress(null);
     }

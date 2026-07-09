@@ -1,7 +1,6 @@
 import { getApps, initializeApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
 
 // Valores de fallback evitam que `next build` quebre antes de o projeto
 // ser conectado a um Firebase real (ver .env.example). Em runtime, sem
@@ -27,4 +26,3 @@ export const firebaseApp =
 
 export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);
-export const storage = getStorage(firebaseApp);

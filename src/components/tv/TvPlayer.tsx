@@ -7,7 +7,7 @@ import { FullscreenButton } from "@/components/tv/FullscreenButton";
 import { ConnectionIndicator } from "@/components/tv/ConnectionIndicator";
 import {
   watchScreenByScreenId,
-  watchContents,
+  watchActiveContents,
   watchPlaylistForScreen,
   sendHeartbeat,
   logScreenExhibition,
@@ -36,9 +36,11 @@ export function TvPlayer({ screenId }: { screenId: string }) {
     return () => unsub();
   }, [screenId]);
 
-  // Conteúdos (coleção completa) e playlist da tela, ambos em tempo real
+  // Conteúdos ativos e playlist da tela, ambos em tempo real. A query já
+  // filtra status "ativo" no servidor: é o que a regra do Firestore exige
+  // para permitir a leitura sem autenticação (ver firestore.rules).
   useEffect(() => {
-    const unsub = watchContents(setAllContents);
+    const unsub = watchActiveContents(setAllContents);
     return () => unsub();
   }, []);
 
