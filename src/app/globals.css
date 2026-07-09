@@ -1,8 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7fbf9;
+  --foreground: #0f2a24;
+
+  /* Paleta tropical Hibiscus */
+  --color-hibiscus-50: #fef2f4;
+  --color-hibiscus-100: #fde3e8;
+  --color-hibiscus-200: #fbccd6;
+  --color-hibiscus-300: #f7a3b6;
+  --color-hibiscus-400: #f16f91;
+  --color-hibiscus-500: #e63e6d;
+  --color-hibiscus-600: #d21f56;
+  --color-hibiscus-700: #b01347;
+  --color-hibiscus-800: #921241;
+  --color-hibiscus-900: #7c123c;
+  --color-hibiscus-950: #45061e;
+
+  --color-tropical-50: #edfcf6;
+  --color-tropical-100: #d3f8e8;
+  --color-tropical-200: #aaefd5;
+  --color-tropical-300: #71e0bd;
+  --color-tropical-400: #3bc9a1;
+  --color-tropical-500: #17ab85;
+  --color-tropical-600: #0c8a6d;
+  --color-tropical-700: #0c6f59;
+  --color-tropical-800: #0d5949;
+  --color-tropical-900: #0d493d;
+  --color-tropical-950: #052a23;
+
+  --color-sand-50: #fdfbf6;
+  --color-sand-100: #f9f3e6;
+  --color-sand-200: #f1e4c6;
+  --color-sand-300: #e6ce9c;
+  --color-sand-400: #d9b16d;
+  --color-sand-500: #cd964a;
+  --color-sand-600: #b97b3c;
+  --color-sand-700: #996133;
+  --color-sand-800: #7c4e2f;
+  --color-sand-900: #654129;
 }
 
 @theme inline {
@@ -10,17 +46,67 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-hibiscus-50: var(--color-hibiscus-50);
+  --color-hibiscus-100: var(--color-hibiscus-100);
+  --color-hibiscus-200: var(--color-hibiscus-200);
+  --color-hibiscus-300: var(--color-hibiscus-300);
+  --color-hibiscus-400: var(--color-hibiscus-400);
+  --color-hibiscus-500: var(--color-hibiscus-500);
+  --color-hibiscus-600: var(--color-hibiscus-600);
+  --color-hibiscus-700: var(--color-hibiscus-700);
+  --color-hibiscus-800: var(--color-hibiscus-800);
+  --color-hibiscus-900: var(--color-hibiscus-900);
+  --color-hibiscus-950: var(--color-hibiscus-950);
+
+  --color-tropical-50: var(--color-tropical-50);
+  --color-tropical-100: var(--color-tropical-100);
+  --color-tropical-200: var(--color-tropical-200);
+  --color-tropical-300: var(--color-tropical-300);
+  --color-tropical-400: var(--color-tropical-400);
+  --color-tropical-500: var(--color-tropical-500);
+  --color-tropical-600: var(--color-tropical-600);
+  --color-tropical-700: var(--color-tropical-700);
+  --color-tropical-800: var(--color-tropical-800);
+  --color-tropical-900: var(--color-tropical-900);
+  --color-tropical-950: var(--color-tropical-950);
+
+  --color-sand-50: var(--color-sand-50);
+  --color-sand-100: var(--color-sand-100);
+  --color-sand-200: var(--color-sand-200);
+  --color-sand-300: var(--color-sand-300);
+  --color-sand-400: var(--color-sand-400);
+  --color-sand-500: var(--color-sand-500);
+  --color-sand-600: var(--color-sand-600);
+  --color-sand-700: var(--color-sand-700);
+  --color-sand-800: var(--color-sand-800);
+  --color-sand-900: var(--color-sand-900);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out;
+}
+
+/* Esconde scrollbar mantendo funcionalidade, útil no player da TV */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

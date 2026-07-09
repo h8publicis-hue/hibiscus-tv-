@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // "Staff": usuário autenticado, ativo e com papel autorizado a gerenciar
+    // conteúdo (admin, marketing ou rh). "viewer" é somente leitura.
+    function isStaff() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDoc().ativo == true
+        && userDoc().role in ['admin', 'marketing', 'rh'];
+    }
+
+    function onlyChangedHeartbeat() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeenAt']);
+    }
+
+    // Perfil do próprio usuário autenticado.
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // Telas: leitura pública (necessária para o player identificar o
+    // status da tela e exibir a mensagem institucional correta).
+    // Escrita restrita ao staff, exceto o heartbeat (lastSeenAt) enviado
+    // pelo próprio player público a cada 30s.
+    match /screens/{screenId} {
+      allow read: if true;
+      allow create, delete: if isStaff();
+      allow update: if isStaff() || onlyChangedHeartbeat();
+    }
+
+    // Conteúdos: o player público só pode ler documentos com status
+    // "ativo". Rascunhos e conteúdos inativos só são visíveis ao staff.
+    match /contents/{contentId} {
+      allow read: if isStaff() || resource.data.status == 'ativo';
+      allow create, update, delete: if isStaff();
+    }
+
+    // Playlists: leitura pública (o player precisa resolver a ordem de
+    // exibição da tela). Escrita restrita ao staff.
+    match /playlists/{playlistId} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    // Logs de exibição: gravados pelo player público a cada troca de
+    // conteúdo; leitura restrita ao staff para auditoria.
+    match /screenLogs/{logId} {
+      allow read: if isStaff();
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}
