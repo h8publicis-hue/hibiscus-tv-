@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import {
   EmailAuthProvider,
   onAuthStateChanged,
@@ -10,6 +11,28 @@ import {
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { AppUser } from "@/types";
+
+export function getAuthErrorMessage(error: unknown): string {
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+      case "auth/user-not-found":
+        return "E-mail ou senha inválidos.";
+      case "auth/too-many-requests":
+        return "Muitas tentativas de login. Aguarde alguns minutos e tente novamente.";
+      case "auth/user-disabled":
+        return "Esta conta está desativada.";
+      case "auth/network-request-failed":
+        return "Falha de conexão. Verifique sua internet e tente novamente.";
+      case "auth/weak-password":
+        return "A senha é muito fraca.";
+      default:
+        return `Não foi possível entrar (${error.code}).`;
+    }
+  }
+  return "Não foi possível entrar. Tente novamente.";
+}
 
 export function login(email: string, password: string) {
   return signInWithEmailAndPassword(auth, email, password);

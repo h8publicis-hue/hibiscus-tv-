@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Palmtree, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { login } from "@/lib/auth";
+import { login, getAuthErrorMessage } from "@/lib/auth";
 import { useAuth } from "@/components/shared/AuthProvider";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldError } from "@/components/ui/Input";
@@ -42,8 +42,8 @@ export default function LoginPage() {
       await login(data.email, data.password);
       toast.success("Login realizado com sucesso!");
       router.replace("/admin");
-    } catch {
-      toast.error("E-mail ou senha inválidos.");
+    } catch (error) {
+      toast.error(getAuthErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
