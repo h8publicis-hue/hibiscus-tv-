@@ -1,7 +1,10 @@
 import {
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   type User,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -14,6 +17,19 @@ export function login(email: string, password: string) {
 
 export function logout() {
   return signOut(auth);
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+) {
+  const user = auth.currentUser;
+  if (!user || !user.email) {
+    throw new Error("Nenhum usuário autenticado.");
+  }
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
 }
 
 export function watchAuthState(callback: (user: User | null) => void) {

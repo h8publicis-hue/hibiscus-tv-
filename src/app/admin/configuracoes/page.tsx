@@ -3,6 +3,7 @@
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { ChangePasswordForm } from "@/components/admin/ChangePasswordForm";
 import { useAuth } from "@/components/shared/AuthProvider";
 import { UNIDADES, SETORES } from "@/types";
 import { formatDateTime } from "@/utils/date";
@@ -51,6 +52,15 @@ export default function ConfiguracoesPage() {
                 {formatDateTime(appUser?.criadoEm)}
               </span>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Trocar senha</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChangePasswordForm />
           </CardContent>
         </Card>
 
