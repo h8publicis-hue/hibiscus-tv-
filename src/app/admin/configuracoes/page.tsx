@@ -4,8 +4,9 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { ChangePasswordForm } from "@/components/admin/ChangePasswordForm";
+import { SectorsManager } from "@/components/admin/SectorsManager";
 import { useAuth } from "@/components/shared/AuthProvider";
-import { UNIDADES, SETORES } from "@/types";
+import { UNIDADES } from "@/types";
 import { formatDateTime } from "@/utils/date";
 
 export default function ConfiguracoesPage() {
@@ -85,19 +86,10 @@ export default function ConfiguracoesPage() {
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Setores disponíveis</CardTitle>
+            <CardTitle>Setores</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {SETORES.map((s) => (
-                <div
-                  key={s.value}
-                  className="rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
-                >
-                  {s.label}
-                </div>
-              ))}
-            </div>
+            <SectorsManager />
           </CardContent>
         </Card>
 

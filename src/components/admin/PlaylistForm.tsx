@@ -25,7 +25,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldError, Select } from "@/components/ui/Input";
 import { createPlaylist, updatePlaylist, watchScreens, watchContents } from "@/lib/firestore";
-import { UNIDADES, SETORES, type Playlist, type Screen, type Content } from "@/types";
+import { useSectors } from "@/hooks/useSectors";
+import { UNIDADES, type Playlist, type Screen, type Content } from "@/types";
 
 const schema = z.object({
   nome: z.string().min(2, "Informe o nome da playlist"),
@@ -42,6 +43,7 @@ export function PlaylistForm({ playlist }: { playlist?: Playlist }) {
   const [submitting, setSubmitting] = useState(false);
   const [screens, setScreens] = useState<Screen[]>([]);
   const [contents, setContents] = useState<Content[]>([]);
+  const { sectors } = useSectors();
   const [selectedTelas, setSelectedTelas] = useState<string[]>(
     playlist?.telas ?? []
   );
@@ -176,8 +178,8 @@ export function PlaylistForm({ playlist }: { playlist?: Playlist }) {
           </Label>
           <Select id="setor" {...register("setor")}>
             <option value="todos">Todos os setores</option>
-            {SETORES.map((s) => (
-              <option key={s.value} value={s.value}>
+            {sectors.map((s) => (
+              <option key={s.id} value={s.id}>
                 {s.label}
               </option>
             ))}

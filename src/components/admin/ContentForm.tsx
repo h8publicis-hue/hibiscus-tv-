@@ -20,9 +20,9 @@ import { ContentPreview } from "@/components/admin/ContentPreview";
 import { createContent, updateContent, watchScreens } from "@/lib/firestore";
 import { dateInputToTimestamp, timestampToDateInput } from "@/utils/date";
 import { useAuth } from "@/components/shared/AuthProvider";
+import { useSectors } from "@/hooks/useSectors";
 import {
   UNIDADES,
-  SETORES,
   TIPOS_CONTEUDO,
   PRIORIDADES,
   STATUS_CONTEUDO,
@@ -36,16 +36,7 @@ const schema = z.object({
   descricao: z.string().optional(),
   tipo: z.enum(["imagem", "video", "texto", "promocao", "urgente", "iframe"]),
   unidade: z.enum(["hibiscus", "mar-cia", "grupo"]),
-  setor: z.enum([
-    "recepcao",
-    "cozinha",
-    "atendimento",
-    "rh",
-    "financeiro",
-    "loja",
-    "pdv",
-    "area-colaboradores",
-  ]),
+  setor: z.string().min(1, "Selecione um setor"),
   status: z.enum(["ativo", "inativo", "rascunho"]),
   prioridade: z.enum(["baixa", "normal", "alta", "urgente"]),
   duracaoEmSegundos: z.number().min(3, "Mínimo de 3 segundos"),
@@ -104,12 +95,14 @@ export function ContentForm({ content }: { content?: Content }) {
       : {
           tipo: "imagem",
           unidade: "grupo",
-          setor: "recepcao",
+          setor: "",
           status: "rascunho",
           prioridade: "normal",
           duracaoEmSegundos: 10,
         },
   });
+
+  const { sectors } = useSectors();
 
   const tipo = useWatch({ control, name: "tipo" });
   const titulo = useWatch({ control, name: "titulo" });
@@ -304,13 +297,15 @@ export function ContentForm({ content }: { content?: Content }) {
             <Label htmlFor="setor" required>
               Setor
             </Label>
-            <Select id="setor" {...register("setor")}>
-              {SETORES.map((s) => (
-                <option key={s.value} value={s.value}>
+            <Select id="setor" error={errors.setor?.message} {...register("setor")}>
+              <option value="">Selecione um setor</option>
+              {sectors.map((s) => (
+                <option key={s.id} value={s.id}>
                   {s.label}
                 </option>
               ))}
             </Select>
+            <FieldError message={errors.setor?.message} />
           </div>
 
           <div>

@@ -1,16 +1,11 @@
 import type { Content } from "@/types";
 import { isWithinPeriod } from "@/utils/date";
 import { PRIORIDADE_PESO } from "@/types";
+import { slugify } from "@/utils/text";
 
 export function generateScreenId(nome: string): string {
-  const slug = nome
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
   const random = Math.random().toString(36).slice(2, 6);
-  return `${slug}-${random}`;
+  return `${slugify(nome)}-${random}`;
 }
 
 export function getTvUrl(screenId: string): string {

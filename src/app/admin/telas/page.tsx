@@ -22,13 +22,15 @@ import { watchScreens, deleteScreen } from "@/lib/firestore";
 import { formatRelative } from "@/utils/date";
 import { isScreenOnline } from "@/utils/date";
 import { getTvUrl } from "@/utils/screen";
-import { UNIDADES, SETORES, type Screen } from "@/types";
+import { useSectors } from "@/hooks/useSectors";
+import { UNIDADES, type Screen } from "@/types";
 
 export default function TelasPage() {
   const [screens, setScreens] = useState<Screen[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Screen | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { sectors } = useSectors();
 
   useEffect(() => {
     const unsub = watchScreens((data) => {
@@ -42,7 +44,7 @@ export default function TelasPage() {
     return UNIDADES.find((u) => u.value === v)?.label ?? v;
   }
   function setorLabel(v: string) {
-    return SETORES.find((s) => s.value === v)?.label ?? v;
+    return sectors.find((s) => s.id === v)?.label ?? v;
   }
 
   async function handleDelete() {

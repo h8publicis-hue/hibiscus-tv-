@@ -4,15 +4,10 @@ import { Timestamp } from "firebase/firestore";
 
 export type Unidade = "hibiscus" | "mar-cia" | "grupo";
 
-export type Setor =
-  | "recepcao"
-  | "cozinha"
-  | "atendimento"
-  | "rh"
-  | "financeiro"
-  | "loja"
-  | "pdv"
-  | "area-colaboradores";
+// Setores são configuráveis pelo admin (coleção "sectors" no Firestore,
+// ver Configurações). O valor é o id do documento (slug), não um union
+// fixo, já que novos setores podem ser criados em runtime.
+export type Setor = string;
 
 export type StatusConteudo = "ativo" | "inativo" | "rascunho";
 
@@ -107,23 +102,18 @@ export interface ScreenLog {
   duracaoEmSegundos: number;
 }
 
+export interface Sector {
+  id: string;
+  label: string;
+  criadoEm: Timestamp;
+}
+
 // ---------- Helpers de UI ----------
 
 export const UNIDADES: { value: Unidade; label: string }[] = [
   { value: "grupo", label: "Grupo Hibiscus" },
   { value: "hibiscus", label: "Hibiscus Beach Club" },
   { value: "mar-cia", label: "Hibiscus Mar & Cia" },
-];
-
-export const SETORES: { value: Setor; label: string }[] = [
-  { value: "recepcao", label: "Recepção" },
-  { value: "cozinha", label: "Cozinha" },
-  { value: "atendimento", label: "Atendimento" },
-  { value: "rh", label: "RH" },
-  { value: "financeiro", label: "Financeiro" },
-  { value: "loja", label: "Loja" },
-  { value: "pdv", label: "PDV" },
-  { value: "area-colaboradores", label: "Área de Colaboradores" },
 ];
 
 export const TIPOS_CONTEUDO: { value: TipoConteudo; label: string }[] = [

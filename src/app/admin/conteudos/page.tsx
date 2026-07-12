@@ -23,9 +23,9 @@ import { Input, Select } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { watchContents, deleteContent, updateContent } from "@/lib/firestore";
 import { formatDateTime } from "@/utils/date";
+import { useSectors } from "@/hooks/useSectors";
 import {
   UNIDADES,
-  SETORES,
   TIPOS_CONTEUDO,
   PRIORIDADES,
   type Content,
@@ -36,6 +36,7 @@ export default function ConteudosPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Content | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { sectors } = useSectors();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -67,6 +68,10 @@ export default function ConteudosPage() {
 
   function label(list: { value: string; label: string }[], v: string) {
     return list.find((i) => i.value === v)?.label ?? v;
+  }
+
+  function sectorLabel(v: string) {
+    return sectors.find((s) => s.id === v)?.label ?? v;
   }
 
   async function handleDelete() {
@@ -145,8 +150,8 @@ export default function ConteudosPage() {
           </Select>
           <Select value={setor} onChange={(e) => setSetor(e.target.value)}>
             <option value="">Todos os setores</option>
-            {SETORES.map((s) => (
-              <option key={s.value} value={s.value}>
+            {sectors.map((s) => (
+              <option key={s.id} value={s.id}>
                 {s.label}
               </option>
             ))}
@@ -207,7 +212,7 @@ export default function ConteudosPage() {
                       {label(TIPOS_CONTEUDO, c.tipo)}
                     </td>
                     <td className="px-4 py-3 text-slate-600">
-                      {label(UNIDADES, c.unidade)} · {label(SETORES, c.setor)}
+                      {label(UNIDADES, c.unidade)} · {sectorLabel(c.setor)}
                     </td>
                     <td className="px-4 py-3">
                       <PriorityBadge prioridade={c.prioridade} />

@@ -12,13 +12,15 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { watchPlaylists, deletePlaylist } from "@/lib/firestore";
-import { UNIDADES, SETORES, type Playlist } from "@/types";
+import { useSectors } from "@/hooks/useSectors";
+import { UNIDADES, type Playlist } from "@/types";
 
 export default function PlaylistsPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const { sectors } = useSectors();
 
   useEffect(() => {
     const unsub = watchPlaylists((data) => {
@@ -33,7 +35,7 @@ export default function PlaylistsPage() {
   }
   function setorLabel(v: string) {
     if (v === "todos") return "Todos os setores";
-    return SETORES.find((s) => s.value === v)?.label ?? v;
+    return sectors.find((s) => s.id === v)?.label ?? v;
   }
 
   async function handleDelete() {

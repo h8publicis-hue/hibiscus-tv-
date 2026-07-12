@@ -9,12 +9,14 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { Content, Playlist, Screen, ScreenLog } from "@/types";
+import type { Content, Playlist, Screen, ScreenLog, Sector } from "@/types";
+import { slugify } from "@/utils/text";
 
 // ---------- Collections refs ----------
 
@@ -23,6 +25,7 @@ export const contentsCol = collection(db, "contents");
 export const playlistsCol = collection(db, "playlists");
 export const screenLogsCol = collection(db, "screenLogs");
 export const usersCol = collection(db, "users");
+export const sectorsCol = collection(db, "sectors");
 
 // ---------- Screens ----------
 
@@ -252,4 +255,48 @@ export async function logScreenExhibition(
     ...data,
     exibidoEm: serverTimestamp(),
   });
+}
+
+// ---------- Sectors ----------
+
+/**
+ * O id do setor é o slug do nome (ex: "recepcao"), não um id gerado
+ * automaticamente, para que fique legível nos documentos de telas,
+ * conteúdos e playlists que referenciam esse valor.
+ */
+export async function createSector(label: string): Promise<string> {
+  const trimmed = label.trim();
+  if (!trimmed) throw new Error("Informe um nome para o setor.");
+
+  const id = slugify(trimmed);
+  if (!id) throw new Error("Nome de setor inválido.");
+
+  const ref = doc(db, "sectors", id);
+  const existing = await getDoc(ref);
+  if (existing.exists()) {
+    throw new Error("Já existe um setor com esse nome.");
+  }
+
+  await setDoc(ref, { label: trimmed, criadoEm: serverTimestamp() });
+  return id;
+}
+
+export async function deleteSector(id: string) {
+  return deleteDoc(doc(db, "sectors", id));
+}
+
+export function watchSectors(callback: (sectors: Sector[]) => void): Unsubscribe {
+  const q = query(sectorsCol, orderBy("label"));
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(
+        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sector, "id">) }))
+      );
+    },
+    (error) => {
+      console.error("watchSectors error:", error);
+      callback([]);
+    }
+  );
 }

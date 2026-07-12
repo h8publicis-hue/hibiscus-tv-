@@ -11,21 +11,13 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldError, Select, Textarea } from "@/components/ui/Input";
 import { createScreen, updateScreen } from "@/lib/firestore";
 import { generateScreenId, getTvUrl } from "@/utils/screen";
-import { UNIDADES, SETORES, type Screen } from "@/types";
+import { useSectors } from "@/hooks/useSectors";
+import { UNIDADES, type Screen } from "@/types";
 
 const schema = z.object({
   nome: z.string().min(2, "Informe o nome da tela"),
   unidade: z.enum(["hibiscus", "mar-cia", "grupo"]),
-  setor: z.enum([
-    "recepcao",
-    "cozinha",
-    "atendimento",
-    "rh",
-    "financeiro",
-    "loja",
-    "pdv",
-    "area-colaboradores",
-  ]),
+  setor: z.string().min(1, "Selecione um setor"),
   localizacao: z.string().min(2, "Informe a localização"),
   orientacao: z.enum(["horizontal", "vertical"]),
   status: z.enum(["ativa", "inativa"]),
@@ -38,6 +30,7 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const isEdit = Boolean(screen);
+  const { sectors } = useSectors();
 
   const {
     register,
@@ -57,7 +50,7 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
         }
       : {
           unidade: "grupo",
-          setor: "recepcao",
+          setor: "",
           orientacao: "horizontal",
           status: "ativa",
           observacoes: "",
@@ -154,13 +147,15 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           <Label htmlFor="setor" required>
             Setor
           </Label>
-          <Select id="setor" {...register("setor")}>
-            {SETORES.map((s) => (
-              <option key={s.value} value={s.value}>
+          <Select id="setor" error={errors.setor?.message} {...register("setor")}>
+            <option value="">Selecione um setor</option>
+            {sectors.map((s) => (
+              <option key={s.id} value={s.id}>
                 {s.label}
               </option>
             ))}
           </Select>
+          <FieldError message={errors.setor?.message} />
         </div>
 
         <div>
