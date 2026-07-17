@@ -42,10 +42,13 @@ service cloud.firestore {
       allow update: if isStaff() || onlyChangedHeartbeat();
     }
 
-    // Conteúdos: o player público só pode ler documentos com status
-    // "ativo". Rascunhos e conteúdos inativos só são visíveis ao staff.
+    // Conteúdos: leitura pública (mesmo padrão de telas/playlists/setores).
+    // O filtro de status "ativo" e período de exibição é feito no cliente
+    // (watchActiveContents + filterPlayableContents) — uma regra de leitura
+    // condicionada a resource.data.status não propaga em tempo real para
+    // listeners já abertos quando um documento volta a ficar "ativo".
     match /contents/{contentId} {
-      allow read: if isStaff() || resource.data.status == 'ativo';
+      allow read: if true;
       allow create, update, delete: if isStaff();
     }
 

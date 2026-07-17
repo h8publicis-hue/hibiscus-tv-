@@ -108,6 +108,10 @@ export function TvPlayer({ screenId }: { screenId: string }) {
   const safeIndex =
     playableContents.length > 0 ? currentIndex % playableContents.length : 0;
   const current = playableContents[safeIndex] ?? null;
+  const next =
+    playableContents.length > 1
+      ? playableContents[(safeIndex + 1) % playableContents.length]
+      : null;
 
   function advance() {
     if (advancedRef.current) return;
@@ -180,8 +184,33 @@ export function TvPlayer({ screenId }: { screenId: string }) {
   return (
     <PlayerShell showFullscreen offline={offline}>
       <MediaRenderer key={current.id} content={current} onEnded={advance} />
+      <MediaPreloader content={next} />
     </PlayerShell>
   );
+}
+
+// Baixa a mídia do próximo conteúdo em segundo plano, para que a troca
+// (agendada via setTimeout/onEnded) não fique esperando o download começar.
+function MediaPreloader({ content }: { content: Content | null }) {
+  if (!content?.arquivoUrl) return null;
+
+  if (content.tipo === "imagem") {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={content.arquivoUrl} alt="" className="hidden" />;
+  }
+
+  if (content.tipo === "video") {
+    return (
+      <video
+        src={content.arquivoUrl}
+        preload="auto"
+        muted
+        className="hidden"
+      />
+    );
+  }
+
+  return null;
 }
 
 function PlayerShell({

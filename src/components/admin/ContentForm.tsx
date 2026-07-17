@@ -18,6 +18,7 @@ import {
 import { UploadField } from "@/components/admin/UploadField";
 import { ContentPreview } from "@/components/admin/ContentPreview";
 import { createContent, updateContent, watchScreens } from "@/lib/firestore";
+import { cn } from "@/lib/utils";
 import { dateInputToTimestamp, timestampToDateInput } from "@/utils/date";
 import { useAuth } from "@/components/shared/AuthProvider";
 import { useSectors } from "@/hooks/useSectors";
@@ -29,7 +30,15 @@ import {
   type Content,
   type Screen,
   type TipoConteudo,
+  type Rotacao,
 } from "@/types";
+
+const ROTACOES: { value: Rotacao; label: string }[] = [
+  { value: 0, label: "0°" },
+  { value: 90, label: "90°" },
+  { value: 180, label: "180°" },
+  { value: 270, label: "270°" },
+];
 
 const schema = z.object({
   titulo: z.string().min(2, "Informe um título"),
@@ -63,6 +72,7 @@ export function ContentForm({ content }: { content?: Content }) {
   );
   const [texto, setTexto] = useState(content?.texto ?? "");
   const [iframeUrl, setIframeUrl] = useState(content?.iframeUrl ?? "");
+  const [rotacao, setRotacao] = useState<Rotacao>(content?.rotacao ?? 0);
   const [selectedTelas, setSelectedTelas] = useState<string[]>(
     content?.telas ?? []
   );
@@ -119,6 +129,7 @@ export function ContentForm({ content }: { content?: Content }) {
       arquivoPath: file?.path ?? null,
       texto: texto || null,
       iframeUrl: iframeUrl || null,
+      rotacao,
       unidade: "grupo",
       setor: "recepcao",
       status: "rascunho",
@@ -131,7 +142,17 @@ export function ContentForm({ content }: { content?: Content }) {
       atualizadoEm: Timestamp.now(),
       criadoPor: "",
     }),
-    [content?.id, titulo, descricao, tipo, file, texto, iframeUrl, duracaoEmSegundos]
+    [
+      content?.id,
+      titulo,
+      descricao,
+      tipo,
+      file,
+      texto,
+      iframeUrl,
+      rotacao,
+      duracaoEmSegundos,
+    ]
   );
 
   function toggleTela(id: string) {
@@ -164,6 +185,7 @@ export function ContentForm({ content }: { content?: Content }) {
         arquivoPath: file?.path ?? null,
         texto: NEEDS_TEXT.includes(data.tipo) ? texto : null,
         iframeUrl: data.tipo === "iframe" ? iframeUrl : null,
+        rotacao: NEEDS_FILE.includes(data.tipo) ? rotacao : 0,
         unidade: data.unidade,
         setor: data.setor,
         status: data.status,
@@ -254,6 +276,29 @@ export function ContentForm({ content }: { content?: Content }) {
                 onChange={setFile}
                 accept={tipo === "imagem" ? "imagem" : "video"}
               />
+            </div>
+          )}
+
+          {NEEDS_FILE.includes(tipo) && (
+            <div className="sm:col-span-2">
+              <Label>Rotação</Label>
+              <div className="flex gap-2">
+                {ROTACOES.map((r) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => setRotacao(r.value)}
+                    className={cn(
+                      "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                      rotacao === r.value
+                        ? "border-hibiscus-600 bg-hibiscus-50 text-hibiscus-700"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

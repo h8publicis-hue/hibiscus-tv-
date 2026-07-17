@@ -155,14 +155,14 @@ export function watchContents(callback: (contents: Content[]) => void): Unsubscr
 }
 
 /**
- * Usado pelo player público. A regra do Firestore só permite listar
- * conteúdos sem estar autenticado quando a query já filtra por
- * status "ativo" (leitura de documentos com outro status exige staff).
+ * Usado pelo player público. A leitura da coleção é pública (ver
+ * firestore.rules); o filtro de status "ativo" e período de exibição é
+ * feito no cliente por filterPlayableContents, não na query — assim o
+ * listener recebe em tempo real quando um conteúdo volta a ficar ativo.
  */
 export function watchActiveContents(callback: (contents: Content[]) => void): Unsubscribe {
-  const q = query(contentsCol, where("status", "==", "ativo"));
   return onSnapshot(
-    q,
+    contentsCol,
     (snap) => {
       callback(
         snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Content, "id">) }))

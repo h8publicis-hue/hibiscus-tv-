@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { AlertTriangle, ImageOff, Megaphone, Sparkles } from "lucide-react";
-import type { Content } from "@/types";
+import type { Content, Rotacao } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface MediaRendererProps {
@@ -29,29 +29,33 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
     case "imagem":
       return (
         <div className={cn("relative h-full w-full bg-black", className)}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={content.arquivoUrl ?? undefined}
-            alt={content.titulo}
-            className="h-full w-full object-contain"
-            onError={() => setFailed(true)}
-          />
+          <RotatedMedia rotacao={content.rotacao}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={content.arquivoUrl ?? undefined}
+              alt={content.titulo}
+              className="h-full w-full object-contain"
+              onError={() => setFailed(true)}
+            />
+          </RotatedMedia>
         </div>
       );
 
     case "video":
       return (
         <div className={cn("relative h-full w-full bg-black", className)}>
-          <video
-            src={content.arquivoUrl ?? undefined}
-            className="h-full w-full object-contain"
-            autoPlay
-            muted
-            playsInline
-            controls={false}
-            onEnded={onEnded}
-            onError={() => setFailed(true)}
-          />
+          <RotatedMedia rotacao={content.rotacao}>
+            <video
+              src={content.arquivoUrl ?? undefined}
+              className="h-full w-full object-contain"
+              autoPlay
+              muted
+              playsInline
+              controls={false}
+              onEnded={onEnded}
+              onError={() => setFailed(true)}
+            />
+          </RotatedMedia>
         </div>
       );
 
@@ -145,4 +149,73 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
         </div>
       );
   }
+}
+
+/**
+ * Gira o conteúdo (imagem/vídeo) em 90/180/270°. Para 90/270, a caixa
+ * precisa trocar largura por altura para continuar preenchendo o
+ * container (que pode ser a tela cheia da TV ou a prévia do admin, de
+ * tamanhos bem diferentes) — por isso medimos o container via
+ * ResizeObserver em vez de depender de vw/vh fixos.
+ */
+function RotatedMedia({
+  rotacao,
+  children,
+}: {
+  rotacao?: Rotacao;
+  children: React.ReactNode;
+}) {
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(
+    null
+  );
+
+  const normalized = rotacao ?? 0;
+  const swapped = normalized === 90 || normalized === 270;
+
+  useLayoutEffect(() => {
+    if (!swapped) return;
+    const parent = anchorRef.current?.parentElement;
+    if (!parent) return;
+
+    function measure() {
+      if (!parent) return;
+      setSize({ width: parent.clientWidth, height: parent.clientHeight });
+    }
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, [swapped]);
+
+  if (normalized === 0) {
+    return <>{children}</>;
+  }
+
+  if (!swapped) {
+    return (
+      <div className="h-full w-full" style={{ transform: "rotate(180deg)" }}>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={anchorRef}
+      className="absolute left-1/2 top-1/2"
+      style={
+        size
+          ? {
+              width: size.height,
+              height: size.width,
+              transform: `translate(-50%, -50%) rotate(${normalized}deg)`,
+            }
+          : { visibility: "hidden" }
+      }
+    >
+      {children}
+    </div>
+  );
 }

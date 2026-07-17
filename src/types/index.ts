@@ -21,6 +21,9 @@ export type TipoConteudo =
   | "urgente"
   | "iframe";
 
+// Rotação aplicada na exibição de imagem/vídeo (graus, sentido horário).
+export type Rotacao = 0 | 90 | 180 | 270;
+
 export type StatusTela = "ativa" | "inativa";
 
 export type Orientacao = "horizontal" | "vertical";
@@ -64,6 +67,7 @@ export interface Content {
   arquivoPath: string | null;
   texto: string | null;
   iframeUrl: string | null;
+  rotacao: Rotacao;
   unidade: Unidade;
   setor: Setor;
   status: StatusConteudo;
