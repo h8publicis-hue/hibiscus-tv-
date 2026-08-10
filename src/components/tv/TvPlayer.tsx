@@ -241,7 +241,7 @@ function LoadingState() {
 
 function InstitutionalScreen({ message }: { message: string }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-6 bg-gradient-to-br from-tropical-900 via-tropical-950 to-hibiscus-950 text-white">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-6 bg-gradient-to-br from-navy-900 via-navy-950 to-hibiscus-950 text-white">
       <div className="flex h-24 w-24 items-center justify-center rounded-full bg-white/10">
         <Palmtree className="h-12 w-12" />
       </div>

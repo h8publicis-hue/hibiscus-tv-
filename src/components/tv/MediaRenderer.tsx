@@ -84,8 +84,12 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
             className
           )}
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/15">
-            <AlertTriangle className="h-10 w-10" />
+          <div className="relative flex h-20 w-20 items-center justify-center">
+            <span className="absolute inset-0 animate-ping rounded-full bg-white/30" />
+            <span className="absolute inset-0 animate-pulse rounded-full bg-white/10" />
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-white/15">
+              <AlertTriangle className="h-10 w-10" />
+            </div>
           </div>
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/80">
             Aviso urgente

@@ -42,7 +42,7 @@ export function Sidebar({
   }
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-b from-hibiscus-700 to-tropical-900 text-white">
+    <div className="flex h-full flex-col bg-gradient-to-b from-navy-800 to-navy-950 text-white">
       <div className="flex items-center gap-3 px-5 py-6">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15">
           <Palmtree className="h-5 w-5" />
