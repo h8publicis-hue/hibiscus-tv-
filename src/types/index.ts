@@ -19,7 +19,8 @@ export type TipoConteudo =
   | "texto"
   | "promocao"
   | "urgente"
-  | "iframe";
+  | "iframe"
+  | "clima";
 
 // Rotação aplicada na exibição de imagem/vídeo (graus, sentido horário).
 export type Rotacao = 0 | 90 | 180 | 270;
@@ -68,6 +69,9 @@ export interface Content {
   texto: string | null;
   iframeUrl: string | null;
   rotacao: Rotacao;
+  cidade: string | null;
+  latitude: number | null;
+  longitude: number | null;
   unidade: Unidade;
   setor: Setor;
   status: StatusConteudo;
@@ -127,6 +131,7 @@ export const TIPOS_CONTEUDO: { value: TipoConteudo; label: string }[] = [
   { value: "promocao", label: "Promoção" },
   { value: "urgente", label: "Aviso Urgente" },
   { value: "iframe", label: "Link/Iframe" },
+  { value: "clima", label: "Previsão do Tempo" },
 ];
 
 export const PRIORIDADES: { value: Prioridade; label: string }[] = [

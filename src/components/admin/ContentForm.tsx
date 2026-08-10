@@ -19,6 +19,7 @@ import { UploadField } from "@/components/admin/UploadField";
 import { ContentPreview } from "@/components/admin/ContentPreview";
 import { createContent, updateContent, watchScreens } from "@/lib/firestore";
 import { cn } from "@/lib/utils";
+import { geocodeCity } from "@/lib/weather";
 import { dateInputToTimestamp, timestampToDateInput } from "@/utils/date";
 import { useAuth } from "@/components/shared/AuthProvider";
 import { useSectors } from "@/hooks/useSectors";
@@ -43,7 +44,15 @@ const ROTACOES: { value: Rotacao; label: string }[] = [
 const schema = z.object({
   titulo: z.string().min(2, "Informe um título"),
   descricao: z.string().optional(),
-  tipo: z.enum(["imagem", "video", "texto", "promocao", "urgente", "iframe"]),
+  tipo: z.enum([
+    "imagem",
+    "video",
+    "texto",
+    "promocao",
+    "urgente",
+    "iframe",
+    "clima",
+  ]),
   unidade: z.enum(["hibiscus", "mar-cia", "grupo"]),
   setor: z.string().min(1, "Selecione um setor"),
   status: z.enum(["ativo", "inativo", "rascunho"]),
@@ -57,6 +66,7 @@ type FormData = z.infer<typeof schema>;
 
 const NEEDS_FILE: TipoConteudo[] = ["imagem", "video"];
 const NEEDS_TEXT: TipoConteudo[] = ["texto", "promocao", "urgente"];
+const NEEDS_LOCATION: TipoConteudo[] = ["clima"];
 
 export function ContentForm({ content }: { content?: Content }) {
   const router = useRouter();
@@ -73,9 +83,39 @@ export function ContentForm({ content }: { content?: Content }) {
   const [texto, setTexto] = useState(content?.texto ?? "");
   const [iframeUrl, setIframeUrl] = useState(content?.iframeUrl ?? "");
   const [rotacao, setRotacao] = useState<Rotacao>(content?.rotacao ?? 0);
+  const [cidadeInput, setCidadeInput] = useState(content?.cidade ?? "");
+  const [cidade, setCidade] = useState(content?.cidade ?? "");
+  const [latitude, setLatitude] = useState<number | null>(
+    content?.latitude ?? null
+  );
+  const [longitude, setLongitude] = useState<number | null>(
+    content?.longitude ?? null
+  );
+  const [buscandoCidade, setBuscandoCidade] = useState(false);
   const [selectedTelas, setSelectedTelas] = useState<string[]>(
     content?.telas ?? []
   );
+
+  async function handleBuscarCidade() {
+    if (!cidadeInput.trim()) return;
+    setBuscandoCidade(true);
+    try {
+      const result = await geocodeCity(cidadeInput.trim());
+      if (!result) {
+        toast.error("Cidade não encontrada. Tente outro nome.");
+        return;
+      }
+      setCidade(result.name);
+      setCidadeInput(result.name);
+      setLatitude(result.latitude);
+      setLongitude(result.longitude);
+      toast.success(`Cidade encontrada: ${result.name}`);
+    } catch {
+      toast.error("Não foi possível buscar a cidade agora.");
+    } finally {
+      setBuscandoCidade(false);
+    }
+  }
 
   useEffect(() => {
     const unsub = watchScreens(setScreens);
@@ -130,6 +170,9 @@ export function ContentForm({ content }: { content?: Content }) {
       texto: texto || null,
       iframeUrl: iframeUrl || null,
       rotacao,
+      cidade: cidade || null,
+      latitude,
+      longitude,
       unidade: "grupo",
       setor: "recepcao",
       status: "rascunho",
@@ -151,6 +194,9 @@ export function ContentForm({ content }: { content?: Content }) {
       texto,
       iframeUrl,
       rotacao,
+      cidade,
+      latitude,
+      longitude,
       duracaoEmSegundos,
     ]
   );
@@ -174,6 +220,10 @@ export function ContentForm({ content }: { content?: Content }) {
       toast.error("Informe a URL do link/iframe.");
       return;
     }
+    if (NEEDS_LOCATION.includes(data.tipo) && (latitude == null || longitude == null)) {
+      toast.error("Busque uma cidade válida antes de salvar.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -186,6 +236,9 @@ export function ContentForm({ content }: { content?: Content }) {
         texto: NEEDS_TEXT.includes(data.tipo) ? texto : null,
         iframeUrl: data.tipo === "iframe" ? iframeUrl : null,
         rotacao: NEEDS_FILE.includes(data.tipo) ? rotacao : 0,
+        cidade: NEEDS_LOCATION.includes(data.tipo) ? cidade : null,
+        latitude: NEEDS_LOCATION.includes(data.tipo) ? latitude : null,
+        longitude: NEEDS_LOCATION.includes(data.tipo) ? longitude : null,
         unidade: data.unidade,
         setor: data.setor,
         status: data.status,
@@ -322,6 +375,38 @@ export function ContentForm({ content }: { content?: Content }) {
                 onChange={(e) => setIframeUrl(e.target.value)}
                 placeholder="https://..."
               />
+            </div>
+          )}
+
+          {tipo === "clima" && (
+            <div className="sm:col-span-2">
+              <Label required>Cidade</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={cidadeInput}
+                  onChange={(e) => setCidadeInput(e.target.value)}
+                  placeholder="Ex: Ilhéus"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  loading={buscandoCidade}
+                  onClick={handleBuscarCidade}
+                >
+                  Buscar
+                </Button>
+              </div>
+              {latitude != null && longitude != null ? (
+                <p className="mt-1.5 text-xs text-tropical-700">
+                  Localização encontrada: {cidade}
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-slate-400">
+                  Busque a cidade para confirmar a localização exata antes de
+                  salvar.
+                </p>
+              )}
             </div>
           )}
 
