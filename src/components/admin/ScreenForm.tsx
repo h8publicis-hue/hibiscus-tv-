@@ -68,6 +68,7 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           ...data,
           observacoes: data.observacoes || "",
           screenId: generateScreenId(data.nome),
+          reloadRequestedAt: null,
         });
         toast.success("Tela criada com sucesso!");
       }

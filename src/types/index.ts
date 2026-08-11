@@ -57,6 +57,7 @@ export interface Screen {
   orientacao: Orientacao;
   lastSeenAt: Timestamp | null;
   observacoes: string;
+  reloadRequestedAt: Timestamp | null;
   criadoEm: Timestamp;
   atualizadoEm: Timestamp;
 }

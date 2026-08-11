@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Pencil,
   Trash2,
+  RefreshCw,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -18,7 +19,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { watchScreens, deleteScreen } from "@/lib/firestore";
+import { watchScreens, deleteScreen, requestScreenReload } from "@/lib/firestore";
 import { formatRelative } from "@/utils/date";
 import { isScreenOnline } from "@/utils/date";
 import { getTvUrl } from "@/utils/screen";
@@ -30,6 +31,7 @@ export default function TelasPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Screen | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [reloadingId, setReloadingId] = useState<string | null>(null);
   const { sectors } = useSectors();
 
   useEffect(() => {
@@ -39,6 +41,22 @@ export default function TelasPage() {
     });
     return () => unsub();
   }, []);
+
+  async function handleReload(screen: Screen) {
+    setReloadingId(screen.id);
+    try {
+      await requestScreenReload(screen.id);
+      toast.success(
+        isScreenOnline(screen.lastSeenAt)
+          ? "Comando enviado — a tela deve recarregar em instantes."
+          : "Comando enviado, mas essa tela está offline agora — ela só vai recarregar quando reconectar."
+      );
+    } catch {
+      toast.error("Não foi possível enviar o comando de recarregar.");
+    } finally {
+      setReloadingId(null);
+    }
+  }
 
   function unidadeLabel(v: string) {
     return UNIDADES.find((u) => u.value === v)?.label ?? v;
@@ -147,6 +165,15 @@ export default function TelasPage() {
                     }
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Recarregar tela remotamente"
+                    loading={reloadingId === screen.id}
+                    onClick={() => handleReload(screen)}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
                   </Button>
                   <Link href={`/admin/telas/${screen.id}/editar`}>
                     <Button variant="ghost" size="sm">

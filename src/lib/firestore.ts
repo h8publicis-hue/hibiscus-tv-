@@ -109,6 +109,18 @@ export async function sendHeartbeat(screenDocId: string) {
   });
 }
 
+/**
+ * Pede pro player público recarregar a página remotamente. O player
+ * mantém um listener em tempo real no próprio documento da tela; ao
+ * detectar que este campo mudou, ele chama window.location.reload().
+ * Só funciona se a tela estiver online (listener ativo).
+ */
+export async function requestScreenReload(screenDocId: string) {
+  return updateDoc(doc(db, "screens", screenDocId), {
+    reloadRequestedAt: serverTimestamp(),
+  });
+}
+
 // ---------- Contents ----------
 
 export async function createContent(

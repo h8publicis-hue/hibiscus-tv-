@@ -29,10 +29,24 @@ export function TvPlayer({ screenId }: { screenId: string }) {
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loggedKeyRef = useRef<string | null>(null);
   const advancedRef = useRef(false);
+  const reloadBaselineRef = useRef<number | null | undefined>(undefined);
 
-  // Localiza a tela pelo screenId e mantém em tempo real
+  // Localiza a tela pelo screenId e mantém em tempo real. Também observa
+  // reloadRequestedAt: quando o admin manda "recarregar tela" à distância,
+  // esse campo muda e o player recarrega a página sozinho (útil quando
+  // uma atualização de código não seria pega por um listener já aberto).
   useEffect(() => {
-    const unsub = watchScreenByScreenId(screenId, setScreen);
+    reloadBaselineRef.current = undefined;
+    const unsub = watchScreenByScreenId(screenId, (s) => {
+      const reloadMs = s?.reloadRequestedAt?.toMillis?.() ?? null;
+      if (reloadBaselineRef.current === undefined) {
+        reloadBaselineRef.current = reloadMs;
+      } else if (reloadMs !== null && reloadMs !== reloadBaselineRef.current) {
+        window.location.reload();
+        return;
+      }
+      setScreen(s);
+    });
     return () => unsub();
   }, [screenId]);
 
