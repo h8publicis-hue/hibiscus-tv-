@@ -6,6 +6,10 @@ import { XMLParser } from "npm:fast-xml-parser@4";
 // bloqueio de CORS que os feeds de notícia costumam ter no navegador
 // (mesmo motivo pelo qual o clima usa Open-Meteo direto: aquele serviço
 // permite CORS; RSS de portais de notícia, em geral, não permite).
+//
+// Aceita uma ou mais categorias separadas por vírgula (?categoria=turismo,alagoas):
+// busca cada feed em paralelo e devolve uma lista única, mesclada por
+// data de publicação e sem duplicatas.
 
 const FEEDS: Record<string, string> = {
   geral: "https://g1.globo.com/rss/g1/",
@@ -13,7 +17,8 @@ const FEEDS: Record<string, string> = {
   alagoas: "https://g1.globo.com/rss/g1/al/alagoas/",
 };
 
-const MAX_ITEMS = 8;
+const ITEMS_PER_FEED = 8;
+const MAX_TOTAL_ITEMS = 12;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,53 +39,80 @@ function extractImage(description: unknown): string | null {
   return match ? match[1] : null;
 }
 
+interface NewsItem {
+  title: string;
+  subtitle: string;
+  link: string;
+  pubDate: string;
+  imageUrl: string | null;
+  categoria: string;
+}
+
+async function fetchFeed(categoria: string, feedUrl: string): Promise<NewsItem[]> {
+  const res = await fetch(feedUrl, {
+    headers: { "User-Agent": "HibiscusTV/1.0 (+https://hibiscus-tv.vercel.app)" },
+  });
+  if (!res.ok) return [];
+  const xml = await res.text();
+
+  const parser = new XMLParser({ ignoreAttributes: false, cdataPropName: "__cdata" });
+  const data = parser.parse(xml);
+
+  const rawItems = data?.rss?.channel?.item;
+  return (Array.isArray(rawItems) ? rawItems : [rawItems])
+    .filter(Boolean)
+    .slice(0, ITEMS_PER_FEED)
+    .map((item) => {
+      const description = item.description?.__cdata ?? item.description ?? "";
+      return {
+        title: String(item.title ?? "").trim(),
+        subtitle: String(item["atom:subtitle"] ?? "").trim(),
+        link: String(item.link ?? ""),
+        pubDate: String(item.pubDate ?? ""),
+        imageUrl: extractImage(description),
+        categoria,
+      };
+    });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   const url = new URL(req.url);
-  const categoria = url.searchParams.get("categoria") ?? "geral";
-  const feedUrl = FEEDS[categoria];
+  const categorias = (url.searchParams.get("categoria") ?? "geral")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
 
-  if (!feedUrl) {
+  const invalidas = categorias.filter((c) => !FEEDS[c]);
+  if (invalidas.length > 0 || categorias.length === 0) {
     return jsonResponse(
-      { error: `Categoria inválida. Use: ${Object.keys(FEEDS).join(", ")}` },
+      {
+        error: `Categoria inválida: ${invalidas.join(", ")}. Use: ${Object.keys(FEEDS).join(", ")}`,
+      },
       400
     );
   }
 
   try {
-    const res = await fetch(feedUrl, {
-      headers: { "User-Agent": "HibiscusTV/1.0 (+https://hibiscus-tv.vercel.app)" },
-    });
-    if (!res.ok) {
-      return jsonResponse({ error: "Não foi possível buscar as notícias." }, 502);
-    }
-    const xml = await res.text();
+    const results = await Promise.all(
+      categorias.map((c) => fetchFeed(c, FEEDS[c]))
+    );
 
-    const parser = new XMLParser({
-      ignoreAttributes: false,
-      cdataPropName: "__cdata",
-    });
-    const data = parser.parse(xml);
+    const seen = new Set<string>();
+    const merged = results
+      .flat()
+      .filter((item) => {
+        if (seen.has(item.link)) return false;
+        seen.add(item.link);
+        return true;
+      })
+      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+      .slice(0, MAX_TOTAL_ITEMS);
 
-    const rawItems = data?.rss?.channel?.item;
-    const items = (Array.isArray(rawItems) ? rawItems : [rawItems])
-      .filter(Boolean)
-      .slice(0, MAX_ITEMS)
-      .map((item) => {
-        const description = item.description?.__cdata ?? item.description ?? "";
-        return {
-          title: String(item.title ?? "").trim(),
-          subtitle: String(item["atom:subtitle"] ?? "").trim(),
-          link: String(item.link ?? ""),
-          pubDate: String(item.pubDate ?? ""),
-          imageUrl: extractImage(description),
-        };
-      });
-
-    return jsonResponse({ categoria, items });
+    return jsonResponse({ categorias, items: merged });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Erro desconhecido";
     return jsonResponse({ error: message }, 500);

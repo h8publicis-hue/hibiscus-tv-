@@ -74,7 +74,7 @@ export interface Content {
   cidade: string | null;
   latitude: number | null;
   longitude: number | null;
-  noticiaCategoria: NoticiaCategoria | null;
+  noticiaCategorias: NoticiaCategoria[];
   unidade: Unidade;
   setor: Setor;
   status: StatusConteudo;

@@ -88,7 +88,7 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
       );
 
     case "noticias":
-      return <NewsCard categoria={content.noticiaCategoria} />;
+      return <NewsCard categorias={content.noticiaCategorias} />;
 
     case "urgente":
       return (

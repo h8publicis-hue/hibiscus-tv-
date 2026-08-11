@@ -95,9 +95,15 @@ export function ContentForm({ content }: { content?: Content }) {
     content?.longitude ?? null
   );
   const [buscandoCidade, setBuscandoCidade] = useState(false);
-  const [noticiaCategoria, setNoticiaCategoria] = useState<NoticiaCategoria>(
-    content?.noticiaCategoria ?? "geral"
+  const [noticiaCategorias, setNoticiaCategorias] = useState<NoticiaCategoria[]>(
+    content?.noticiaCategorias ?? ["geral"]
   );
+
+  function toggleNoticiaCategoria(value: NoticiaCategoria) {
+    setNoticiaCategorias((prev) =>
+      prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]
+    );
+  }
   const [selectedTelas, setSelectedTelas] = useState<string[]>(
     content?.telas ?? []
   );
@@ -179,7 +185,7 @@ export function ContentForm({ content }: { content?: Content }) {
       cidade: cidade || null,
       latitude,
       longitude,
-      noticiaCategoria,
+      noticiaCategorias,
       unidade: "grupo",
       setor: "recepcao",
       status: "rascunho",
@@ -204,7 +210,7 @@ export function ContentForm({ content }: { content?: Content }) {
       cidade,
       latitude,
       longitude,
-      noticiaCategoria,
+      noticiaCategorias,
       duracaoEmSegundos,
     ]
   );
@@ -232,6 +238,13 @@ export function ContentForm({ content }: { content?: Content }) {
       toast.error("Busque uma cidade válida antes de salvar.");
       return;
     }
+    if (
+      NEEDS_NEWS_CATEGORY.includes(data.tipo) &&
+      noticiaCategorias.length === 0
+    ) {
+      toast.error("Selecione ao menos uma categoria de notícias.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -247,9 +260,9 @@ export function ContentForm({ content }: { content?: Content }) {
         cidade: NEEDS_LOCATION.includes(data.tipo) ? cidade : null,
         latitude: NEEDS_LOCATION.includes(data.tipo) ? latitude : null,
         longitude: NEEDS_LOCATION.includes(data.tipo) ? longitude : null,
-        noticiaCategoria: NEEDS_NEWS_CATEGORY.includes(data.tipo)
-          ? noticiaCategoria
-          : null,
+        noticiaCategorias: NEEDS_NEWS_CATEGORY.includes(data.tipo)
+          ? noticiaCategorias
+          : [],
         unidade: data.unidade,
         setor: data.setor,
         status: data.status,
@@ -423,19 +436,31 @@ export function ContentForm({ content }: { content?: Content }) {
 
           {tipo === "noticias" && (
             <div className="sm:col-span-2">
-              <Label required>Categoria de notícias</Label>
-              <Select
-                value={noticiaCategoria}
-                onChange={(e) =>
-                  setNoticiaCategoria(e.target.value as NoticiaCategoria)
-                }
-              >
-                {NOTICIA_CATEGORIAS.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </Select>
+              <Label required>Categorias de notícias</Label>
+              <p className="mb-2 text-xs text-slate-500">
+                Selecione uma ou mais — as manchetes são mescladas
+                automaticamente por data, sem duplicatas.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {NOTICIA_CATEGORIAS.map((c) => {
+                  const checked = noticiaCategorias.includes(c.value);
+                  return (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onClick={() => toggleNoticiaCategoria(c.value)}
+                      className={cn(
+                        "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                        checked
+                          ? "border-hibiscus-600 bg-hibiscus-50 text-hibiscus-700"
+                          : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                      )}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
               <p className="mt-1.5 text-xs text-slate-400">
                 Manchetes atualizadas automaticamente a partir do G1.
               </p>

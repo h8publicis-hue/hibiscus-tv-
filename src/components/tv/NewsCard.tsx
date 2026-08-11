@@ -15,15 +15,16 @@ const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutos
 const MAX_VISIBLE = 5;
 
 interface NewsCardProps {
-  categoria: NoticiaCategoria | null;
+  categorias: NoticiaCategoria[] | null;
 }
 
-export function NewsCard({ categoria }: NewsCardProps) {
+export function NewsCard({ categorias }: NewsCardProps) {
   const [items, setItems] = useState<NewsItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const key = categorias?.join(",") ?? "";
 
   useEffect(() => {
-    if (!categoria) {
+    if (!categorias || categorias.length === 0) {
       setFailed(true);
       return;
     }
@@ -32,7 +33,7 @@ export function NewsCard({ categoria }: NewsCardProps) {
     setFailed(false);
 
     function load() {
-      fetchNews(categoria as NoticiaCategoria)
+      fetchNews(categorias as NoticiaCategoria[])
         .then((data) => {
           if (!cancelled) setItems(data);
         })
@@ -47,12 +48,14 @@ export function NewsCard({ categoria }: NewsCardProps) {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [categoria]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
 
-  const categoriaLabel =
-    NOTICIA_CATEGORIAS.find((c) => c.value === categoria)?.label ?? "Notícias";
+  const categoriaLabel = (categorias ?? [])
+    .map((c) => NOTICIA_CATEGORIAS.find((n) => n.value === c)?.label ?? c)
+    .join(" + ") || "Notícias";
 
-  if (failed || !categoria) {
+  if (failed || !categorias || categorias.length === 0) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-gradient-to-br from-navy-900 via-navy-950 to-hibiscus-950 text-white">
         <Newspaper className="h-14 w-14 text-white/60" />

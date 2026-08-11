@@ -14,11 +14,14 @@ export interface NewsItem {
   link: string;
   pubDate: string;
   imageUrl: string | null;
+  categoria: NoticiaCategoria;
 }
 
-export async function fetchNews(categoria: NoticiaCategoria): Promise<NewsItem[]> {
+export async function fetchNews(
+  categorias: NoticiaCategoria[]
+): Promise<NewsItem[]> {
   const res = await fetch(
-    `${FUNCTIONS_URL}/news-feed?categoria=${encodeURIComponent(categoria)}`
+    `${FUNCTIONS_URL}/news-feed?categoria=${encodeURIComponent(categorias.join(","))}`
   );
   if (!res.ok) throw new Error("Não foi possível carregar as notícias.");
   const data = await res.json();
