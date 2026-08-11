@@ -20,6 +20,7 @@ import { ContentPreview } from "@/components/admin/ContentPreview";
 import { createContent, updateContent, watchScreens } from "@/lib/firestore";
 import { cn } from "@/lib/utils";
 import { geocodeCity } from "@/lib/weather";
+import { NOTICIA_CATEGORIAS, type NoticiaCategoria } from "@/lib/news";
 import { dateInputToTimestamp, timestampToDateInput } from "@/utils/date";
 import { useAuth } from "@/components/shared/AuthProvider";
 import { useSectors } from "@/hooks/useSectors";
@@ -52,6 +53,7 @@ const schema = z.object({
     "urgente",
     "iframe",
     "clima",
+    "noticias",
   ]),
   unidade: z.enum(["hibiscus", "mar-cia", "grupo"]),
   setor: z.string().min(1, "Selecione um setor"),
@@ -67,6 +69,7 @@ type FormData = z.infer<typeof schema>;
 const NEEDS_FILE: TipoConteudo[] = ["imagem", "video"];
 const NEEDS_TEXT: TipoConteudo[] = ["texto", "promocao", "urgente"];
 const NEEDS_LOCATION: TipoConteudo[] = ["clima"];
+const NEEDS_NEWS_CATEGORY: TipoConteudo[] = ["noticias"];
 
 export function ContentForm({ content }: { content?: Content }) {
   const router = useRouter();
@@ -92,6 +95,9 @@ export function ContentForm({ content }: { content?: Content }) {
     content?.longitude ?? null
   );
   const [buscandoCidade, setBuscandoCidade] = useState(false);
+  const [noticiaCategoria, setNoticiaCategoria] = useState<NoticiaCategoria>(
+    content?.noticiaCategoria ?? "geral"
+  );
   const [selectedTelas, setSelectedTelas] = useState<string[]>(
     content?.telas ?? []
   );
@@ -173,6 +179,7 @@ export function ContentForm({ content }: { content?: Content }) {
       cidade: cidade || null,
       latitude,
       longitude,
+      noticiaCategoria,
       unidade: "grupo",
       setor: "recepcao",
       status: "rascunho",
@@ -197,6 +204,7 @@ export function ContentForm({ content }: { content?: Content }) {
       cidade,
       latitude,
       longitude,
+      noticiaCategoria,
       duracaoEmSegundos,
     ]
   );
@@ -239,6 +247,9 @@ export function ContentForm({ content }: { content?: Content }) {
         cidade: NEEDS_LOCATION.includes(data.tipo) ? cidade : null,
         latitude: NEEDS_LOCATION.includes(data.tipo) ? latitude : null,
         longitude: NEEDS_LOCATION.includes(data.tipo) ? longitude : null,
+        noticiaCategoria: NEEDS_NEWS_CATEGORY.includes(data.tipo)
+          ? noticiaCategoria
+          : null,
         unidade: data.unidade,
         setor: data.setor,
         status: data.status,
@@ -407,6 +418,27 @@ export function ContentForm({ content }: { content?: Content }) {
                   salvar.
                 </p>
               )}
+            </div>
+          )}
+
+          {tipo === "noticias" && (
+            <div className="sm:col-span-2">
+              <Label required>Categoria de notícias</Label>
+              <Select
+                value={noticiaCategoria}
+                onChange={(e) =>
+                  setNoticiaCategoria(e.target.value as NoticiaCategoria)
+                }
+              >
+                {NOTICIA_CATEGORIAS.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </Select>
+              <p className="mt-1.5 text-xs text-slate-400">
+                Manchetes atualizadas automaticamente a partir do G1.
+              </p>
             </div>
           )}
 

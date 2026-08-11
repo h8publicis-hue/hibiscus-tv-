@@ -1,4 +1,5 @@
 import { Timestamp } from "firebase/firestore";
+import type { NoticiaCategoria } from "@/lib/news";
 
 // ---------- Enums / literais ----------
 
@@ -20,7 +21,8 @@ export type TipoConteudo =
   | "promocao"
   | "urgente"
   | "iframe"
-  | "clima";
+  | "clima"
+  | "noticias";
 
 // Rotação aplicada na exibição de imagem/vídeo (graus, sentido horário).
 export type Rotacao = 0 | 90 | 180 | 270;
@@ -72,6 +74,7 @@ export interface Content {
   cidade: string | null;
   latitude: number | null;
   longitude: number | null;
+  noticiaCategoria: NoticiaCategoria | null;
   unidade: Unidade;
   setor: Setor;
   status: StatusConteudo;
@@ -132,6 +135,7 @@ export const TIPOS_CONTEUDO: { value: TipoConteudo; label: string }[] = [
   { value: "urgente", label: "Aviso Urgente" },
   { value: "iframe", label: "Link/Iframe" },
   { value: "clima", label: "Previsão do Tempo" },
+  { value: "noticias", label: "Notícias" },
 ];
 
 export const PRIORIDADES: { value: Prioridade; label: string }[] = [

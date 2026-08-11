@@ -5,6 +5,7 @@ import { AlertTriangle, ImageOff, Megaphone, Sparkles } from "lucide-react";
 import type { Content, Rotacao } from "@/types";
 import { cn } from "@/lib/utils";
 import { WeatherCard } from "@/components/tv/WeatherCard";
+import { NewsCard } from "@/components/tv/NewsCard";
 
 interface MediaRendererProps {
   content: Content;
@@ -85,6 +86,9 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
           longitude={content.longitude}
         />
       );
+
+    case "noticias":
+      return <NewsCard categoria={content.noticiaCategoria} />;
 
     case "urgente":
       return (
