@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Plus,
   MonitorPlay,
+  MonitorOff,
   Copy,
   ExternalLink,
   Pencil,
@@ -126,6 +127,21 @@ export default function TelasPage() {
                     </p>
                   </div>
                   <StatusBadge status={online ? "online" : "offline"} />
+                </div>
+
+                <div className="mb-3 aspect-video w-full overflow-hidden rounded-lg bg-slate-900">
+                  {online ? (
+                    <iframe
+                      src={`${getTvUrl(screen.screenId)}?preview=1`}
+                      className="h-full w-full border-0"
+                      title={`Prévia ao vivo — ${screen.nome}`}
+                    />
+                  ) : (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-slate-500">
+                      <MonitorOff className="h-6 w-6" />
+                      <span className="text-xs">Tela offline</span>
+                    </div>
+                  )}
                 </div>
 
                 <p className="mb-1 truncate text-sm text-slate-600">

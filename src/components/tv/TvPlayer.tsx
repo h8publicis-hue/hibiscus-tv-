@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Palmtree } from "lucide-react";
+import { Palmtree, Play } from "lucide-react";
 import { MediaRenderer } from "@/components/tv/MediaRenderer";
 import { FullscreenButton } from "@/components/tv/FullscreenButton";
 import { ConnectionIndicator } from "@/components/tv/ConnectionIndicator";
@@ -17,11 +17,18 @@ import type { Content, Playlist, Screen } from "@/types";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
-export function TvPlayer({ screenId }: { screenId: string }) {
+export function TvPlayer({
+  screenId,
+  previewMode = false,
+}: {
+  screenId: string;
+  previewMode?: boolean;
+}) {
   const [screen, setScreen] = useState<Screen | null | undefined>(undefined);
   const [allContents, setAllContents] = useState<Content[]>([]);
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const [offline, setOffline] = useState(() =>
     typeof navigator === "undefined" ? false : !navigator.onLine
   );
@@ -66,16 +73,18 @@ export function TvPlayer({ screenId }: { screenId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen?.id]);
 
-  // Heartbeat: atualiza lastSeenAt a cada 30s
+  // Heartbeat: atualiza lastSeenAt a cada 30s. Não roda em modo de
+  // prévia (embed no admin) — senão uma TV desligada apareceria
+  // "online" só porque alguém está olhando o preview no painel.
   useEffect(() => {
-    if (!screen) return;
+    if (!screen || previewMode) return;
     sendHeartbeat(screen.id).catch(() => {});
     const interval = setInterval(() => {
       sendHeartbeat(screen.id).catch(() => {});
     }, HEARTBEAT_INTERVAL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen?.id]);
+  }, [screen?.id, previewMode]);
 
   // Indicador de conexão baseado no estado da rede do navegador
   useEffect(() => {
@@ -132,8 +141,21 @@ export function TvPlayer({ screenId }: { screenId: string }) {
     advancedRef.current = true;
     setCurrentIndex((prev) => {
       if (playableContents.length === 0) return 0;
-      return (prev + 1) % playableContents.length;
+      const nextIndex = (prev + 1) % playableContents.length;
+      // No modo de prévia (usado nos cards do admin), pausa ao completar
+      // uma volta inteira pela programação em vez de repetir para sempre —
+      // evita consumir dados/CPU com vários previews rodando ao mesmo tempo.
+      if (previewMode && nextIndex === 0) {
+        setPaused(true);
+        return prev;
+      }
+      return nextIndex;
     });
+  }
+
+  function resumePreview() {
+    setPaused(false);
+    setCurrentIndex(0);
   }
 
   // Agenda a troca automática de conteúdo conforme duracaoEmSegundos
@@ -141,7 +163,7 @@ export function TvPlayer({ screenId }: { screenId: string }) {
   useEffect(() => {
     advancedRef.current = false;
     if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
-    if (!current) return;
+    if (!current || paused) return;
 
     const durationMs = Math.max(current.duracaoEmSegundos, 3) * 1000;
     advanceTimerRef.current = setTimeout(advance, durationMs);
@@ -150,11 +172,12 @@ export function TvPlayer({ screenId }: { screenId: string }) {
       if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.id]);
+  }, [current?.id, paused]);
 
-  // Registra exibição no screenLogs (uma vez por troca de conteúdo)
+  // Registra exibição no screenLogs (uma vez por troca de conteúdo).
+  // Não registra em modo de prévia — não é audiência real.
   useEffect(() => {
-    if (!screen || !current) return;
+    if (!screen || !current || previewMode) return;
     const key = `${screen.id}:${current.id}:${currentIndex}`;
     if (loggedKeyRef.current === key) return;
     loggedKeyRef.current = key;
@@ -163,7 +186,7 @@ export function TvPlayer({ screenId }: { screenId: string }) {
       contentId: current.id,
       duracaoEmSegundos: current.duracaoEmSegundos,
     }).catch(() => {});
-  }, [screen, current, currentIndex]);
+  }, [screen, current, currentIndex, previewMode]);
 
   // ---------- Renderização ----------
 
@@ -196,10 +219,25 @@ export function TvPlayer({ screenId }: { screenId: string }) {
   }
 
   return (
-    <PlayerShell showFullscreen offline={offline}>
+    <PlayerShell showFullscreen={!previewMode} offline={offline}>
       <MediaRenderer key={current.id} content={current} onEnded={advance} />
       <MediaPreloader content={next} />
+      {paused && <PausedOverlay onPlay={resumePreview} />}
     </PlayerShell>
+  );
+}
+
+function PausedOverlay({ onPlay }: { onPlay: () => void }) {
+  return (
+    <button
+      onClick={onPlay}
+      className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-2 bg-black/70 text-white transition-colors hover:bg-black/60"
+    >
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20">
+        <Play className="h-6 w-6 translate-x-0.5" fill="currentColor" />
+      </div>
+      <span className="text-sm font-medium">Assistir novamente</span>
+    </button>
   );
 }
 
