@@ -10,7 +10,7 @@ import { XMLParser } from "npm:fast-xml-parser@4";
 const FEEDS: Record<string, string> = {
   geral: "https://g1.globo.com/rss/g1/",
   turismo: "https://g1.globo.com/rss/g1/turismo-e-viagem/",
-  bahia: "https://g1.globo.com/rss/g1/ba/bahia/",
+  alagoas: "https://g1.globo.com/rss/g1/al/alagoas/",
 };
 
 const MAX_ITEMS = 8;
