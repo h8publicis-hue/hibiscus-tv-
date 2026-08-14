@@ -24,6 +24,8 @@ export function UploadField({ value, path, onChange, accept = "all" }: UploadFie
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isVideo, setIsVideo] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   const acceptAttr =
     accept === "imagem"
@@ -68,6 +70,33 @@ export function UploadField({ value, path, onChange, accept = "all" }: UploadFie
     if (inputRef.current) inputRef.current.value = "";
   }
 
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    dragCounter.current += 1;
+    if (e.dataTransfer.types.includes("Files")) setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    dragCounter.current -= 1;
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
+      setIsDragging(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  }
+
   const showingVideo =
     accept === "video" ||
     (accept === "all" &&
@@ -98,8 +127,13 @@ export function UploadField({ value, path, onChange, accept = "all" }: UploadFie
         </div>
       ) : (
         <label
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
           className={cn(
-            "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center transition-colors hover:border-hibiscus-400 hover:bg-hibiscus-50/40"
+            "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center transition-colors hover:border-hibiscus-400 hover:bg-hibiscus-50/40",
+            isDragging && "border-hibiscus-500 bg-hibiscus-50"
           )}
         >
           <input
@@ -126,9 +160,16 @@ export function UploadField({ value, path, onChange, accept = "all" }: UploadFie
             </div>
           ) : (
             <>
-              <UploadCloud className="h-8 w-8 text-slate-400" />
+              <UploadCloud
+                className={cn(
+                  "h-8 w-8 text-slate-400",
+                  isDragging && "text-hibiscus-500"
+                )}
+              />
               <p className="text-sm font-medium text-slate-600">
-                Clique para enviar imagem ou vídeo
+                {isDragging
+                  ? "Solte o arquivo aqui"
+                  : "Clique ou arraste imagem ou vídeo"}
               </p>
               <p className="flex items-center gap-1 text-xs text-slate-400">
                 <FileImage className="h-3.5 w-3.5" /> JPG, PNG, WEBP até 10MB ·{" "}

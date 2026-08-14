@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Spinner } from "@/components/shared/Spinner";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { DashboardCards, type DashboardCardData } from "@/components/admin/DashboardCards";
+import { StorageUsageCard } from "@/components/admin/StorageUsageCard";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { PriorityBadge } from "@/components/shared/PriorityBadge";
@@ -114,6 +115,7 @@ export default function DashboardPage() {
       />
 
       <DashboardCards cards={cards} />
+      <StorageUsageCard />
 
       <Card className="mt-6">
         <CardHeader>

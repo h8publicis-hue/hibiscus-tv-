@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -12,6 +12,7 @@ import {
   Pencil,
   Trash2,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -19,6 +20,7 @@ import { Spinner } from "@/components/shared/Spinner";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input, Select } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { watchScreens, deleteScreen, requestScreenReload } from "@/lib/firestore";
 import { formatRelative } from "@/utils/date";
@@ -35,6 +37,11 @@ export default function TelasPage() {
   const [reloadingId, setReloadingId] = useState<string | null>(null);
   const { sectors } = useSectors();
 
+  const [search, setSearch] = useState("");
+  const [unidade, setUnidade] = useState("");
+  const [setor, setSetor] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState("");
+
   useEffect(() => {
     const unsub = watchScreens((data) => {
       setScreens(data);
@@ -42,6 +49,22 @@ export default function TelasPage() {
     });
     return () => unsub();
   }, []);
+
+  const filtered = useMemo(() => {
+    return screens.filter((s) => {
+      if (
+        search &&
+        !s.nome.toLowerCase().includes(search.toLowerCase()) &&
+        !s.localizacao.toLowerCase().includes(search.toLowerCase())
+      )
+        return false;
+      if (unidade && s.unidade !== unidade) return false;
+      if (setor && s.setor !== setor) return false;
+      if (statusFiltro === "online" && !isScreenOnline(s.lastSeenAt)) return false;
+      if (statusFiltro === "offline" && isScreenOnline(s.lastSeenAt)) return false;
+      return true;
+    });
+  }, [screens, search, unidade, setor, statusFiltro]);
 
   async function handleReload(screen: Screen) {
     setReloadingId(screen.id);
@@ -95,6 +118,47 @@ export default function TelasPage() {
         }
       />
 
+      {screens.length > 0 && (
+        <Card className="mb-6 p-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="relative lg:col-span-2">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Buscar por nome ou localização..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Select value={unidade} onChange={(e) => setUnidade(e.target.value)}>
+              <option value="">Todas as unidades</option>
+              {UNIDADES.map((u) => (
+                <option key={u.value} value={u.value}>
+                  {u.label}
+                </option>
+              ))}
+            </Select>
+            <Select value={setor} onChange={(e) => setSetor(e.target.value)}>
+              <option value="">Todos os setores</option>
+              {sectors.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={statusFiltro}
+              onChange={(e) => setStatusFiltro(e.target.value)}
+              className="sm:col-span-2 lg:col-span-4"
+            >
+              <option value="">Online e offline</option>
+              <option value="online">Só online</option>
+              <option value="offline">Só offline</option>
+            </Select>
+          </div>
+        </Card>
+      )}
+
       {loading ? (
         <Spinner />
       ) : screens.length === 0 ? (
@@ -111,9 +175,15 @@ export default function TelasPage() {
             </Link>
           }
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="Nenhuma tela encontrada"
+          description="Ajuste a busca ou os filtros."
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {screens.map((screen) => {
+          {filtered.map((screen) => {
             const online = isScreenOnline(screen.lastSeenAt);
             return (
               <Card key={screen.id} className="flex flex-col p-5">

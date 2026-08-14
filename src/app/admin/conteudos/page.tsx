@@ -11,6 +11,7 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  Copy,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -21,9 +22,15 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { watchContents, deleteContent, updateContent } from "@/lib/firestore";
+import {
+  watchContents,
+  deleteContent,
+  updateContent,
+  duplicateContent,
+} from "@/lib/firestore";
 import { formatDateTime } from "@/utils/date";
 import { useSectors } from "@/hooks/useSectors";
+import { useAuth } from "@/components/shared/AuthProvider";
 import {
   UNIDADES,
   TIPOS_CONTEUDO,
@@ -36,7 +43,9 @@ export default function ConteudosPage() {
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Content | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const { sectors } = useSectors();
+  const { user } = useAuth();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -85,6 +94,18 @@ export default function ConteudosPage() {
       toast.error("Não foi possível excluir o conteúdo.");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleDuplicate(content: Content) {
+    setDuplicatingId(content.id);
+    try {
+      await duplicateContent(content, user?.uid ?? "");
+      toast.success("Conteúdo duplicado como rascunho.");
+    } catch {
+      toast.error("Não foi possível duplicar o conteúdo.");
+    } finally {
+      setDuplicatingId(null);
     }
   }
 
@@ -242,6 +263,15 @@ export default function ConteudosPage() {
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </Link>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Duplicar"
+                          loading={duplicatingId === c.id}
+                          onClick={() => handleDuplicate(c)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"

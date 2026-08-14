@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Plus, ListVideo, Pencil, Trash2, MonitorPlay } from "lucide-react";
+import { Plus, ListVideo, Pencil, Trash2, MonitorPlay, Search } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Spinner } from "@/components/shared/Spinner";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input, Select } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { watchPlaylists, deletePlaylist } from "@/lib/firestore";
 import { useSectors } from "@/hooks/useSectors";
@@ -22,6 +23,10 @@ export default function PlaylistsPage() {
   const [deleting, setDeleting] = useState(false);
   const { sectors } = useSectors();
 
+  const [search, setSearch] = useState("");
+  const [unidade, setUnidade] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState("");
+
   useEffect(() => {
     const unsub = watchPlaylists((data) => {
       setPlaylists(data);
@@ -29,6 +34,16 @@ export default function PlaylistsPage() {
     });
     return () => unsub();
   }, []);
+
+  const filtered = useMemo(() => {
+    return playlists.filter((p) => {
+      if (search && !p.nome.toLowerCase().includes(search.toLowerCase()))
+        return false;
+      if (unidade && p.unidade !== unidade) return false;
+      if (statusFiltro && p.status !== statusFiltro) return false;
+      return true;
+    });
+  }, [playlists, search, unidade, statusFiltro]);
 
   function unidadeLabel(v: string) {
     return UNIDADES.find((u) => u.value === v)?.label ?? v;
@@ -67,6 +82,35 @@ export default function PlaylistsPage() {
         }
       />
 
+      {playlists.length > 0 && (
+        <Card className="mb-6 p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Buscar por nome..."
+                className="pl-9"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Select value={unidade} onChange={(e) => setUnidade(e.target.value)}>
+              <option value="">Todas as unidades</option>
+              {UNIDADES.map((u) => (
+                <option key={u.value} value={u.value}>
+                  {u.label}
+                </option>
+              ))}
+            </Select>
+            <Select value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value)}>
+              <option value="">Todos os status</option>
+              <option value="ativa">Ativa</option>
+              <option value="inativa">Inativa</option>
+            </Select>
+          </div>
+        </Card>
+      )}
+
       {loading ? (
         <Spinner />
       ) : playlists.length === 0 ? (
@@ -83,9 +127,15 @@ export default function PlaylistsPage() {
             </Link>
           }
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Search}
+          title="Nenhuma playlist encontrada"
+          description="Ajuste a busca ou os filtros."
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {playlists.map((p) => (
+          {filtered.map((p) => (
             <Card key={p.id} className="flex flex-col p-5">
               <div className="mb-3 flex items-start justify-between gap-2">
                 <h3 className="truncate font-semibold text-slate-900">

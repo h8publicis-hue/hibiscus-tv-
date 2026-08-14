@@ -144,6 +144,22 @@ export async function deleteContent(id: string) {
   return deleteDoc(doc(db, "contents", id));
 }
 
+/**
+ * Cria uma cópia de um conteúdo existente como rascunho, pronta pra
+ * ajustar (unidade/setor/telas) em vez de recomeçar o formulário do zero.
+ */
+export async function duplicateContent(content: Content, criadoPor: string) {
+  const { id: _id, criadoEm: _criadoEm, atualizadoEm: _atualizadoEm, ...rest } = content;
+  return addDoc(contentsCol, {
+    ...rest,
+    titulo: `${content.titulo} (cópia)`,
+    status: "rascunho" as const,
+    criadoPor,
+    criadoEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp(),
+  });
+}
+
 export async function getContentById(id: string) {
   const snap = await getDoc(doc(db, "contents", id));
   if (!snap.exists()) return null;

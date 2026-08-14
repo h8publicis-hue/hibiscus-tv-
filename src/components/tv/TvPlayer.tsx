@@ -220,7 +220,9 @@ export function TvPlayer({
 
   return (
     <PlayerShell showFullscreen={!previewMode} offline={offline}>
-      <MediaRenderer key={current.id} content={current} onEnded={advance} />
+      <div key={current.id} className="animate-fade-in h-full w-full">
+        <MediaRenderer content={current} onEnded={advance} />
+      </div>
       <MediaPreloader content={next} />
       {paused && <PausedOverlay onPlay={resumePreview} />}
     </PlayerShell>

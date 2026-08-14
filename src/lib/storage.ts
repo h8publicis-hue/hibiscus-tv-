@@ -117,3 +117,20 @@ export async function deleteContentFile(path: string) {
     throw new Error(data.error || "Falha ao excluir arquivo.");
   }
 }
+
+export interface StorageUsage {
+  usedBytes: number;
+  limitBytes: number;
+}
+
+export async function getStorageUsage(): Promise<StorageUsage> {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Você precisa estar autenticado.");
+  const idToken = await user.getIdToken();
+
+  const res = await fetch(`${FUNCTIONS_URL}/storage-usage`, {
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (!res.ok) throw new Error("Não foi possível consultar o armazenamento.");
+  return res.json();
+}
