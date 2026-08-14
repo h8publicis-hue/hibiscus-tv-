@@ -21,7 +21,8 @@ const JWKS = createRemoteJWKSet(
 const IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const VIDEO_TYPES = ["video/mp4", "video/webm"];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
-const MAX_VIDEO_SIZE = 200 * 1024 * 1024;
+// Plano gratuito do Supabase trava uploads em 50MB no nível da conta.
+const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,7 +90,13 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Imagem excede o tamanho máximo de 10 MB." }, 400);
       }
       if (isVideo && file.size > MAX_VIDEO_SIZE) {
-        return jsonResponse({ error: "Vídeo excede o tamanho máximo de 200 MB." }, 400);
+        return jsonResponse(
+          {
+            error:
+              "Vídeo excede o tamanho máximo de 50 MB (limite do plano gratuito do Supabase).",
+          },
+          400
+        );
       }
 
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");

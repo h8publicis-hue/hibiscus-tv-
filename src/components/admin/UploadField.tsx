@@ -132,7 +132,7 @@ export function UploadField({ value, path, onChange, accept = "all" }: UploadFie
               </p>
               <p className="flex items-center gap-1 text-xs text-slate-400">
                 <FileImage className="h-3.5 w-3.5" /> JPG, PNG, WEBP até 10MB ·{" "}
-                <FileVideo className="h-3.5 w-3.5" /> MP4, WEBM até 200MB
+                <FileVideo className="h-3.5 w-3.5" /> MP4, WEBM até 50MB
               </p>
             </>
           )}

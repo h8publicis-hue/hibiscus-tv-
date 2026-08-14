@@ -4,7 +4,10 @@ export const IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"
 export const VIDEO_TYPES = ["video/mp4", "video/webm"];
 
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
-export const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
+// O plano gratuito do Supabase trava qualquer upload em 50MB no nível da
+// conta, independente do file_size_limit configurado no bucket — por
+// isso o limite aqui reflete a conta, não o (mais alto) limite do bucket.
+export const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50 MB
 
 const FUNCTIONS_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/functions/v1`;
 
@@ -24,7 +27,11 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   }
 
   if (isVideo && file.size > MAX_VIDEO_SIZE) {
-    return { valid: false, error: "Vídeo excede o tamanho máximo de 200 MB." };
+    return {
+      valid: false,
+      error:
+        "Vídeo excede o tamanho máximo de 50 MB (limite do plano gratuito do Supabase). Comprima o arquivo antes de enviar.",
+    };
   }
 
   return { valid: true };
