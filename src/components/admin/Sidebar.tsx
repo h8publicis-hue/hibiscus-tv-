@@ -7,6 +7,7 @@ import {
   FileStack,
   MonitorPlay,
   ListVideo,
+  BarChart3,
   Settings,
   Palmtree,
   LogOut,
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/admin/conteudos", label: "Conteúdos", icon: FileStack },
   { href: "/admin/telas", label: "Telas", icon: MonitorPlay },
   { href: "/admin/playlists", label: "Playlists", icon: ListVideo },
+  { href: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ];
 

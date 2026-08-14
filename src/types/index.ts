@@ -55,6 +55,10 @@ export interface Screen {
   screenId: string;
   status: StatusTela;
   orientacao: Orientacao;
+  // Gira o conteúdo via CSS quando a tela física é vertical mas não gira
+  // sozinha (comum em monitores/TVs sem suporte a rotação por hardware).
+  // Deixe desmarcado se o próprio dispositivo já rotaciona a exibição.
+  rotacaoForcada: boolean;
   lastSeenAt: Timestamp | null;
   observacoes: string;
   reloadRequestedAt: Timestamp | null;

@@ -29,6 +29,8 @@ import { getTvUrl } from "@/utils/screen";
 import { useSectors } from "@/hooks/useSectors";
 import { UNIDADES, type Screen } from "@/types";
 
+const PAGE_SIZE = 30;
+
 export default function TelasPage() {
   const [screens, setScreens] = useState<Screen[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,14 +43,18 @@ export default function TelasPage() {
   const [unidade, setUnidade] = useState("");
   const [setor, setSetor] = useState("");
   const [statusFiltro, setStatusFiltro] = useState("");
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+
+  const hasActiveFilter = Boolean(search || unidade || setor || statusFiltro);
 
   useEffect(() => {
     const unsub = watchScreens((data) => {
       setScreens(data);
       setLoading(false);
-    });
+    }, hasActiveFilter ? undefined : pageSize);
     return () => unsub();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageSize, hasActiveFilter]);
 
   const filtered = useMemo(() => {
     return screens.filter((s) => {
@@ -278,6 +284,18 @@ export default function TelasPage() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {!hasActiveFilter && screens.length === pageSize && (
+        <div className="mt-4 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPageSize((n) => n + PAGE_SIZE)}
+          >
+            Carregar mais
+          </Button>
         </div>
       )}
 

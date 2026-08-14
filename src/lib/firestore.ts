@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -12,6 +13,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  type QueryConstraint,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -65,8 +67,13 @@ export async function getScreenByScreenId(screenId: string) {
   return { id: d.id, ...(d.data() as Omit<Screen, "id">) };
 }
 
-export function watchScreens(callback: (screens: Screen[]) => void): Unsubscribe {
-  const q = query(screensCol, orderBy("criadoEm", "desc"));
+export function watchScreens(
+  callback: (screens: Screen[]) => void,
+  limitCount?: number
+): Unsubscribe {
+  const constraints: QueryConstraint[] = [orderBy("criadoEm", "desc")];
+  if (limitCount) constraints.push(limit(limitCount));
+  const q = query(screensCol, ...constraints);
   return onSnapshot(
     q,
     (snap) => {
@@ -166,8 +173,13 @@ export async function getContentById(id: string) {
   return { id: snap.id, ...(snap.data() as Omit<Content, "id">) };
 }
 
-export function watchContents(callback: (contents: Content[]) => void): Unsubscribe {
-  const q = query(contentsCol, orderBy("criadoEm", "desc"));
+export function watchContents(
+  callback: (contents: Content[]) => void,
+  limitCount?: number
+): Unsubscribe {
+  const constraints: QueryConstraint[] = [orderBy("criadoEm", "desc")];
+  if (limitCount) constraints.push(limit(limitCount));
+  const q = query(contentsCol, ...constraints);
   return onSnapshot(
     q,
     (snap) => {
@@ -232,8 +244,13 @@ export async function getPlaylistById(id: string) {
   return { id: snap.id, ...(snap.data() as Omit<Playlist, "id">) };
 }
 
-export function watchPlaylists(callback: (playlists: Playlist[]) => void): Unsubscribe {
-  const q = query(playlistsCol, orderBy("criadoEm", "desc"));
+export function watchPlaylists(
+  callback: (playlists: Playlist[]) => void,
+  limitCount?: number
+): Unsubscribe {
+  const constraints: QueryConstraint[] = [orderBy("criadoEm", "desc")];
+  if (limitCount) constraints.push(limit(limitCount));
+  const q = query(playlistsCol, ...constraints);
   return onSnapshot(
     q,
     (snap) => {
@@ -283,6 +300,33 @@ export async function logScreenExhibition(
     ...data,
     exibidoEm: serverTimestamp(),
   });
+}
+
+/**
+ * Histórico de exibição, mais recente primeiro. Opcionalmente filtrado
+ * por tela — essa combinação (where + orderBy em campos diferentes)
+ * depende do índice composto screenId+exibidoEm em firestore.indexes.json.
+ */
+export function watchRecentScreenLogs(
+  callback: (logs: ScreenLog[]) => void,
+  options?: { screenId?: string; limitCount?: number }
+): Unsubscribe {
+  const constraints = options?.screenId
+    ? [where("screenId", "==", options.screenId), orderBy("exibidoEm", "desc")]
+    : [orderBy("exibidoEm", "desc")];
+  const q = query(screenLogsCol, ...constraints, limit(options?.limitCount ?? 300));
+  return onSnapshot(
+    q,
+    (snap) => {
+      callback(
+        snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ScreenLog, "id">) }))
+      );
+    },
+    (error) => {
+      console.error("watchRecentScreenLogs error:", error);
+      callback([]);
+    }
+  );
 }
 
 // ---------- Sectors ----------

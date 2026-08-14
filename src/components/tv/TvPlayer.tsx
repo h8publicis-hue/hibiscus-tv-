@@ -202,9 +202,15 @@ export function TvPlayer({
     );
   }
 
+  // Gira via CSS quando a tela é vertical mas o dispositivo físico não
+  // gira sozinho (ver campo "rotacaoForcada" no cadastro da tela). Não
+  // se aplica no modo de prévia do admin, que já tem sua própria caixa.
+  const forceRotate =
+    !previewMode && screen.orientacao === "vertical" && screen.rotacaoForcada;
+
   if (screen.status !== "ativa") {
     return (
-      <PlayerShell showFullscreen>
+      <PlayerShell showFullscreen rotate={forceRotate}>
         <InstitutionalScreen message="Esta tela está temporariamente inativa." />
       </PlayerShell>
     );
@@ -212,14 +218,18 @@ export function TvPlayer({
 
   if (!current) {
     return (
-      <PlayerShell showFullscreen offline={offline}>
+      <PlayerShell showFullscreen offline={offline} rotate={forceRotate}>
         <InstitutionalScreen message="Nenhum conteúdo programado no momento." />
       </PlayerShell>
     );
   }
 
   return (
-    <PlayerShell showFullscreen={!previewMode} offline={offline}>
+    <PlayerShell
+      showFullscreen={!previewMode}
+      offline={offline}
+      rotate={forceRotate}
+    >
       <div key={current.id} className="animate-fade-in h-full w-full">
         <MediaRenderer content={current} onEnded={advance} />
       </div>
@@ -271,14 +281,29 @@ function PlayerShell({
   children,
   showFullscreen,
   offline,
+  rotate,
 }: {
   children: React.ReactNode;
   showFullscreen?: boolean;
   offline?: boolean;
+  rotate?: boolean;
 }) {
   return (
     <div className="fixed inset-0 h-screen w-screen overflow-hidden bg-black">
-      <div className="animate-fade-in h-full w-full">{children}</div>
+      {rotate ? (
+        <div
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: "100vh",
+            height: "100vw",
+            transform: "translate(-50%, -50%) rotate(90deg)",
+          }}
+        >
+          <div className="animate-fade-in h-full w-full">{children}</div>
+        </div>
+      ) : (
+        <div className="animate-fade-in h-full w-full">{children}</div>
+      )}
       {showFullscreen && <FullscreenButton />}
       <ConnectionIndicator show={Boolean(offline)} />
     </div>

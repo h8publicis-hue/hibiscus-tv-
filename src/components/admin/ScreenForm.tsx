@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ const schema = z.object({
   setor: z.string().min(1, "Selecione um setor"),
   localizacao: z.string().min(2, "Informe a localização"),
   orientacao: z.enum(["horizontal", "vertical"]),
+  rotacaoForcada: z.boolean().optional(),
   status: z.enum(["ativa", "inativa"]),
   observacoes: z.string().optional(),
 });
@@ -35,6 +36,7 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -45,6 +47,7 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           setor: screen.setor,
           localizacao: screen.localizacao,
           orientacao: screen.orientacao,
+          rotacaoForcada: screen.rotacaoForcada ?? false,
           status: screen.status,
           observacoes: screen.observacoes,
         }
@@ -52,21 +55,28 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           unidade: "grupo",
           setor: "",
           orientacao: "horizontal",
+          rotacaoForcada: false,
           status: "ativa",
           observacoes: "",
         },
   });
 
+  const orientacao = useWatch({ control, name: "orientacao" });
+
   async function onSubmit(data: FormData) {
     setSubmitting(true);
     try {
+      const payload = {
+        ...data,
+        rotacaoForcada: data.orientacao === "vertical" ? Boolean(data.rotacaoForcada) : false,
+      };
       if (isEdit && screen) {
-        await updateScreen(screen.id, data);
+        await updateScreen(screen.id, payload);
         toast.success("Tela atualizada com sucesso!");
       } else {
         await createScreen({
-          ...data,
-          observacoes: data.observacoes || "",
+          ...payload,
+          observacoes: payload.observacoes || "",
           screenId: generateScreenId(data.nome),
           reloadRequestedAt: null,
         });
@@ -181,6 +191,29 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
             <option value="vertical">Vertical</option>
           </Select>
         </div>
+
+        {orientacao === "vertical" && (
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-hibiscus-600 focus:ring-hibiscus-500"
+                {...register("rotacaoForcada")}
+              />
+              <span>
+                <span className="font-medium text-slate-700">
+                  Forçar rotação por software
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-500">
+                  Marque só se o monitor físico não gira o conteúdo
+                  sozinho. Se a TV/monitor já roda em modo retrato
+                  nativamente, deixe desmarcado — marcar nesse caso vai
+                  girar a imagem errado.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
 
         <div>
           <Label htmlFor="status" required>

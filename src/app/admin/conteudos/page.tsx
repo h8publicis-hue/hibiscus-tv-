@@ -38,6 +38,8 @@ import {
   type Content,
 } from "@/types";
 
+const PAGE_SIZE = 30;
+
 export default function ConteudosPage() {
   const [contents, setContents] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,14 +55,20 @@ export default function ConteudosPage() {
   const [unidade, setUnidade] = useState("");
   const [setor, setSetor] = useState("");
   const [prioridade, setPrioridade] = useState("");
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+
+  const hasActiveFilter = Boolean(
+    search || status || tipo || unidade || setor || prioridade
+  );
 
   useEffect(() => {
     const unsub = watchContents((data) => {
       setContents(data);
       setLoading(false);
-    });
+    }, hasActiveFilter ? undefined : pageSize);
     return () => unsub();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageSize, hasActiveFilter]);
 
   const filtered = useMemo(() => {
     return contents.filter((c) => {
@@ -288,6 +296,18 @@ export default function ConteudosPage() {
             </table>
           </div>
         </Card>
+      )}
+
+      {!hasActiveFilter && contents.length === pageSize && (
+        <div className="mt-4 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPageSize((n) => n + PAGE_SIZE)}
+          >
+            Carregar mais
+          </Button>
+        </div>
       )}
 
       <ConfirmDialog

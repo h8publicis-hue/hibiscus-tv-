@@ -16,6 +16,8 @@ import { watchPlaylists, deletePlaylist } from "@/lib/firestore";
 import { useSectors } from "@/hooks/useSectors";
 import { UNIDADES, type Playlist } from "@/types";
 
+const PAGE_SIZE = 30;
+
 export default function PlaylistsPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,14 +28,18 @@ export default function PlaylistsPage() {
   const [search, setSearch] = useState("");
   const [unidade, setUnidade] = useState("");
   const [statusFiltro, setStatusFiltro] = useState("");
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+
+  const hasActiveFilter = Boolean(search || unidade || statusFiltro);
 
   useEffect(() => {
     const unsub = watchPlaylists((data) => {
       setPlaylists(data);
       setLoading(false);
-    });
+    }, hasActiveFilter ? undefined : pageSize);
     return () => unsub();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageSize, hasActiveFilter]);
 
   const filtered = useMemo(() => {
     return playlists.filter((p) => {
@@ -174,6 +180,18 @@ export default function PlaylistsPage() {
               </div>
             </Card>
           ))}
+        </div>
+      )}
+
+      {!hasActiveFilter && playlists.length === pageSize && (
+        <div className="mt-4 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPageSize((n) => n + PAGE_SIZE)}
+          >
+            Carregar mais
+          </Button>
         </div>
       )}
 

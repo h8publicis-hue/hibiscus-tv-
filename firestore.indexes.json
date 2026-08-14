@@ -7,6 +7,14 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "telas", "arrayConfig": "CONTAINS" }
       ]
+    },
+    {
+      "collectionGroup": "screenLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "screenId", "order": "ASCENDING" },
+        { "fieldPath": "exibidoEm", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
