@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { geocodeCity } from "@/lib/weather";
 import { NOTICIA_CATEGORIAS, type NoticiaCategoria } from "@/lib/news";
 import { dateInputToTimestamp, timestampToDateInput } from "@/utils/date";
+import { extractIframeSrc } from "@/utils/text";
 import { useAuth } from "@/components/shared/AuthProvider";
 import { useSectors } from "@/hooks/useSectors";
 import {
@@ -107,6 +108,14 @@ export function ContentForm({ content }: { content?: Content }) {
   const [selectedTelas, setSelectedTelas] = useState<string[]>(
     content?.telas ?? []
   );
+
+  function handleIframeUrlChange(value: string) {
+    const extracted = extractIframeSrc(value);
+    if (extracted !== value) {
+      toast.success("Peguei só o link de dentro do código incorporado.");
+    }
+    setIframeUrl(extracted);
+  }
 
   async function handleBuscarCidade() {
     if (!cidadeInput.trim()) return;
@@ -396,9 +405,13 @@ export function ContentForm({ content }: { content?: Content }) {
               <Label required>URL do link/iframe</Label>
               <Input
                 value={iframeUrl}
-                onChange={(e) => setIframeUrl(e.target.value)}
+                onChange={(e) => handleIframeUrlChange(e.target.value)}
                 placeholder="https://..."
               />
+              <p className="mt-1.5 text-xs text-slate-400">
+                Cole a URL diretamente, ou o código {"<iframe>"} inteiro —
+                a gente extrai o link sozinho.
+              </p>
             </div>
           )}
 
