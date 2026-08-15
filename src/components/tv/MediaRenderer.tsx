@@ -66,8 +66,9 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
         <div className={cn("relative h-full w-full bg-white", className)}>
           {content.iframeUrl ? (
             <iframe
-              src={content.iframeUrl}
+              src={withAutoplay(content.iframeUrl)}
               className="h-full w-full border-0"
+              allow="autoplay; encrypted-media; fullscreen"
               onError={() => setFailed(true)}
             />
           ) : (
@@ -166,6 +167,35 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
           ) : null}
         </div>
       );
+  }
+}
+
+/**
+ * Liga autoplay (mudo, já que navegadores só autoplayam vídeo sem som)
+ * para provedores conhecidos, para o conteúdo já começar rodando sozinho
+ * em vez de esperar alguém clicar em play numa TV sem controle remoto.
+ */
+function withAutoplay(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+
+    if (host === "youtube.com" || host === "youtube-nocookie.com") {
+      parsed.searchParams.set("autoplay", "1");
+      parsed.searchParams.set("mute", "1");
+      parsed.searchParams.set("playsinline", "1");
+      return parsed.toString();
+    }
+
+    if (host === "player.vimeo.com") {
+      parsed.searchParams.set("autoplay", "1");
+      parsed.searchParams.set("muted", "1");
+      return parsed.toString();
+    }
+
+    return url;
+  } catch {
+    return url;
   }
 }
 

@@ -13,6 +13,8 @@ import {
   Trash2,
   RefreshCw,
   Search,
+  Maximize2,
+  X,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -23,6 +25,7 @@ import { Button } from "@/components/ui/Button";
 import { Input, Select } from "@/components/ui/Input";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { watchScreens, deleteScreen, requestScreenReload } from "@/lib/firestore";
+import { cn } from "@/lib/utils";
 import { formatRelative } from "@/utils/date";
 import { isScreenOnline } from "@/utils/date";
 import { getTvUrl } from "@/utils/screen";
@@ -37,6 +40,7 @@ export default function TelasPage() {
   const [deleteTarget, setDeleteTarget] = useState<Screen | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [reloadingId, setReloadingId] = useState<string | null>(null);
+  const [expandedScreen, setExpandedScreen] = useState<Screen | null>(null);
   const { sectors } = useSectors();
 
   const [search, setSearch] = useState("");
@@ -46,6 +50,15 @@ export default function TelasPage() {
   const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
   const hasActiveFilter = Boolean(search || unidade || setor || statusFiltro);
+
+  useEffect(() => {
+    if (!expandedScreen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setExpandedScreen(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [expandedScreen]);
 
   useEffect(() => {
     const unsub = watchScreens((data) => {
@@ -205,13 +218,25 @@ export default function TelasPage() {
                   <StatusBadge status={online ? "online" : "offline"} />
                 </div>
 
-                <div className="mb-3 aspect-video w-full overflow-hidden rounded-lg bg-slate-900">
+                <div className="group relative mb-3 aspect-video w-full overflow-hidden rounded-lg bg-slate-900">
                   {online ? (
-                    <iframe
-                      src={`${getTvUrl(screen.screenId)}?preview=1`}
-                      className="h-full w-full border-0"
-                      title={`Prévia ao vivo — ${screen.nome}`}
-                    />
+                    <>
+                      <iframe
+                        src={`${getTvUrl(screen.screenId)}?preview=1`}
+                        className="h-full w-full border-0"
+                        title={`Prévia ao vivo — ${screen.nome}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setExpandedScreen(screen)}
+                        title="Expandir prévia"
+                        className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/40 group-hover:opacity-100"
+                      >
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-sm">
+                          <Maximize2 className="h-4 w-4" />
+                        </span>
+                      </button>
+                    </>
                   ) : (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-slate-500">
                       <MonitorOff className="h-6 w-6" />
@@ -296,6 +321,55 @@ export default function TelasPage() {
           >
             Carregar mais
           </Button>
+        </div>
+      )}
+
+      {expandedScreen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setExpandedScreen(null)}
+          />
+          <div
+            className={cn(
+              "relative w-full overflow-hidden rounded-2xl bg-slate-900 shadow-2xl",
+              expandedScreen.orientacao === "vertical"
+                ? "max-h-[85vh] max-w-md"
+                : "max-w-4xl"
+            )}
+          >
+            <div className="flex items-center justify-between gap-3 bg-slate-900 px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">
+                  {expandedScreen.nome}
+                </p>
+                <p className="truncate text-xs text-slate-400">
+                  {expandedScreen.localizacao}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpandedScreen(null)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div
+              className={cn(
+                "w-full bg-black",
+                expandedScreen.orientacao === "vertical"
+                  ? "aspect-[9/16]"
+                  : "aspect-video"
+              )}
+            >
+              <iframe
+                src={`${getTvUrl(expandedScreen.screenId)}?preview=1`}
+                className="h-full w-full border-0"
+                title={`Prévia ampliada — ${expandedScreen.nome}`}
+              />
+            </div>
+          </div>
         </div>
       )}
 
