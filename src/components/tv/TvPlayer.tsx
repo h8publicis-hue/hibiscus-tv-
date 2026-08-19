@@ -12,7 +12,11 @@ import {
   sendHeartbeat,
   logScreenExhibition,
 } from "@/lib/firestore";
-import { filterPlayableContents, sortContentsByPriority } from "@/utils/screen";
+import {
+  filterPlayableContents,
+  isWithinBusinessHours,
+  sortContentsByPriority,
+} from "@/utils/screen";
 import type { Content, Playlist, Screen } from "@/types";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
@@ -29,6 +33,7 @@ export function TvPlayer({
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [now, setNow] = useState(() => new Date());
   const [offline, setOffline] = useState(() =>
     typeof navigator === "undefined" ? false : !navigator.onLine
   );
@@ -86,6 +91,15 @@ export function TvPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen?.id, previewMode]);
 
+  // Reavalia o horário de funcionamento periodicamente, só quando a tela
+  // tem restrição configurada — evita re-render extra nas telas sem esse
+  // limite (a maioria).
+  useEffect(() => {
+    if (!screen?.horarioFuncionamento) return;
+    const interval = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(interval);
+  }, [screen?.horarioFuncionamento]);
+
   // Indicador de conexão baseado no estado da rede do navegador
   useEffect(() => {
     function goOnline() {
@@ -136,6 +150,11 @@ export function TvPlayer({
       ? playableContents[(safeIndex + 1) % playableContents.length]
       : null;
 
+  // A prévia do admin ignora o horário de funcionamento — sempre mostra
+  // o conteúdo real, independente da hora.
+  const withinHours =
+    previewMode || isWithinBusinessHours(screen?.horarioFuncionamento, now);
+
   function advance() {
     if (advancedRef.current) return;
     advancedRef.current = true;
@@ -163,7 +182,7 @@ export function TvPlayer({
   useEffect(() => {
     advancedRef.current = false;
     if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
-    if (!current || paused) return;
+    if (!current || paused || !withinHours) return;
 
     const durationMs = Math.max(current.duracaoEmSegundos, 3) * 1000;
     advanceTimerRef.current = setTimeout(advance, durationMs);
@@ -172,12 +191,13 @@ export function TvPlayer({
       if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.id, paused]);
+  }, [current?.id, paused, withinHours]);
 
   // Registra exibição no screenLogs (uma vez por troca de conteúdo).
-  // Não registra em modo de prévia — não é audiência real.
+  // Não registra em modo de prévia nem fora do horário de funcionamento
+  // — nenhum dos dois é audiência real.
   useEffect(() => {
-    if (!screen || !current || previewMode) return;
+    if (!screen || !current || previewMode || !withinHours) return;
     const key = `${screen.id}:${current.id}:${currentIndex}`;
     if (loggedKeyRef.current === key) return;
     loggedKeyRef.current = key;
@@ -186,7 +206,7 @@ export function TvPlayer({
       contentId: current.id,
       duracaoEmSegundos: current.duracaoEmSegundos,
     }).catch(() => {});
-  }, [screen, current, currentIndex, previewMode]);
+  }, [screen, current, currentIndex, previewMode, withinHours]);
 
   // ---------- Renderização ----------
 
@@ -212,6 +232,16 @@ export function TvPlayer({
     return (
       <PlayerShell showFullscreen rotate={forceRotate}>
         <InstitutionalScreen message="Esta tela está temporariamente inativa." />
+      </PlayerShell>
+    );
+  }
+
+  // Fora do horário de funcionamento, não carrega nenhuma mídia — é
+  // isso que economiza banda do Supabase enquanto a casa está fechada.
+  if (!withinHours) {
+    return (
+      <PlayerShell showFullscreen offline={offline} rotate={forceRotate}>
+        <InstitutionalScreen message="Fora do horário de funcionamento." />
       </PlayerShell>
     );
   }

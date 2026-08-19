@@ -26,6 +26,32 @@ export function filterPlayableContents(contents: Content[]): Content[] {
 }
 
 /**
+ * Verifica se o horário atual está dentro do horário de funcionamento
+ * configurado para a tela. Sem restrição configurada, está sempre dentro.
+ * Suporta intervalos que cruzam a meia-noite (ex: 22:00 às 06:00).
+ */
+export function isWithinBusinessHours(
+  horario: { inicio: string; fim: string } | null | undefined,
+  now: Date = new Date()
+): boolean {
+  if (!horario) return true;
+
+  const [hIni, mIni] = horario.inicio.split(":").map(Number);
+  const [hFim, mFim] = horario.fim.split(":").map(Number);
+  if ([hIni, mIni, hFim, mFim].some(Number.isNaN)) return true;
+
+  const minutosAgora = now.getHours() * 60 + now.getMinutes();
+  const minutosInicio = hIni * 60 + mIni;
+  const minutosFim = hFim * 60 + mFim;
+
+  if (minutosInicio === minutosFim) return true;
+  if (minutosInicio < minutosFim) {
+    return minutosAgora >= minutosInicio && minutosAgora < minutosFim;
+  }
+  return minutosAgora >= minutosInicio || minutosAgora < minutosFim;
+}
+
+/**
  * Ordena por prioridade (urgente primeiro) e depois por data de criação
  * (mais recente primeiro).
  */

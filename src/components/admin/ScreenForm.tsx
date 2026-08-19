@@ -21,9 +21,19 @@ const schema = z.object({
   localizacao: z.string().min(2, "Informe a localização"),
   orientacao: z.enum(["horizontal", "vertical"]),
   rotacaoForcada: z.boolean().optional(),
+  restringirHorario: z.boolean().optional(),
+  horaAbertura: z.string().optional(),
+  horaFechamento: z.string().optional(),
   status: z.enum(["ativa", "inativa"]),
   observacoes: z.string().optional(),
-});
+}).refine(
+  (data) =>
+    !data.restringirHorario || (data.horaAbertura && data.horaFechamento),
+  {
+    message: "Informe o horário de abertura e fechamento.",
+    path: ["horaAbertura"],
+  }
+);
 
 type FormData = z.infer<typeof schema>;
 
@@ -48,6 +58,9 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           localizacao: screen.localizacao,
           orientacao: screen.orientacao,
           rotacaoForcada: screen.rotacaoForcada ?? false,
+          restringirHorario: Boolean(screen.horarioFuncionamento),
+          horaAbertura: screen.horarioFuncionamento?.inicio ?? "08:00",
+          horaFechamento: screen.horarioFuncionamento?.fim ?? "17:00",
           status: screen.status,
           observacoes: screen.observacoes,
         }
@@ -56,19 +69,27 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           setor: "",
           orientacao: "horizontal",
           rotacaoForcada: false,
+          restringirHorario: false,
+          horaAbertura: "08:00",
+          horaFechamento: "17:00",
           status: "ativa",
           observacoes: "",
         },
   });
 
   const orientacao = useWatch({ control, name: "orientacao" });
+  const restringirHorario = useWatch({ control, name: "restringirHorario" });
 
   async function onSubmit(data: FormData) {
     setSubmitting(true);
     try {
+      const { restringirHorario, horaAbertura, horaFechamento, ...rest } = data;
       const payload = {
-        ...data,
+        ...rest,
         rotacaoForcada: data.orientacao === "vertical" ? Boolean(data.rotacaoForcada) : false,
+        horarioFuncionamento: restringirHorario
+          ? { inicio: horaAbertura!, fim: horaFechamento! }
+          : null,
       };
       if (isEdit && screen) {
         await updateScreen(screen.id, payload);
@@ -214,6 +235,49 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
             </label>
           </div>
         )}
+
+        <div className="sm:col-span-2">
+          <label className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-hibiscus-600 focus:ring-hibiscus-500"
+              {...register("restringirHorario")}
+            />
+            <span>
+              <span className="font-medium text-slate-700">
+                Restringir ao horário de funcionamento
+              </span>
+              <span className="mt-0.5 block text-xs text-slate-500">
+                Fora do horário definido, a tela exibe uma mensagem
+                institucional e para de baixar imagens/vídeos — economiza
+                banda do plano do Supabase quando a casa está fechada.
+              </span>
+            </span>
+          </label>
+
+          {restringirHorario && (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="horaAbertura">Abre às</Label>
+                <Input
+                  id="horaAbertura"
+                  type="time"
+                  error={errors.horaAbertura?.message}
+                  {...register("horaAbertura")}
+                />
+                <FieldError message={errors.horaAbertura?.message} />
+              </div>
+              <div>
+                <Label htmlFor="horaFechamento">Fecha às</Label>
+                <Input
+                  id="horaFechamento"
+                  type="time"
+                  {...register("horaFechamento")}
+                />
+              </div>
+            </div>
+          )}
+        </div>
 
         <div>
           <Label htmlFor="status" required>

@@ -59,6 +59,9 @@ export interface Screen {
   // sozinha (comum em monitores/TVs sem suporte a rotação por hardware).
   // Deixe desmarcado se o próprio dispositivo já rotaciona a exibição.
   rotacaoForcada: boolean;
+  // Restringe a exibição de conteúdo ao horário de funcionamento da
+  // unidade (formato "HH:mm"). null/undefined = exibe 24h por dia.
+  horarioFuncionamento: { inicio: string; fim: string } | null;
   lastSeenAt: Timestamp | null;
   observacoes: string;
   reloadRequestedAt: Timestamp | null;

@@ -102,9 +102,17 @@ Deno.serve(async (req) => {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `${uid}/${Date.now()}_${safeName}`;
 
+      // Nome do arquivo já é único (prefixo de timestamp) e nunca é
+      // sobrescrito — pode cachear por 1 ano sem risco de servir uma
+      // versão desatualizada. Isso evita que cada tela rebaixe o mesmo
+      // vídeo/imagem do Supabase a cada hora enquanto fica em loop.
       const { error: uploadError } = await supabaseAdmin.storage
         .from("contents")
-        .upload(path, file, { contentType: file.type, upsert: false });
+        .upload(path, file, {
+          contentType: file.type,
+          upsert: false,
+          cacheControl: "31536000",
+        });
 
       if (uploadError) {
         return jsonResponse({ error: uploadError.message }, 500);
