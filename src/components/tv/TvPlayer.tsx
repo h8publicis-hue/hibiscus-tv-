@@ -328,7 +328,16 @@ function PlayerShell({
           style={{
             width: swapped ? "100vh" : "100vw",
             height: swapped ? "100vw" : "100vh",
-            transform: `translate(-50%, -50%) rotate(${rotate}deg)`,
+            transform: `translate3d(-50%, -50%, 0) rotate(${rotate}deg)`,
+            // Mantém a camada de composição do GPU sempre pronta. Sem
+            // isso, o Chrome às vezes demora a aplicar a rotação a um
+            // <video> recém-montado (cada troca de conteúdo remonta o
+            // elemento), mostrando 1-2 quadros sem girar antes de
+            // "encaixar" — só afeta vídeo porque só ele precisa de
+            // decodificação por GPU; imagem nunca sofre disso.
+            willChange: "transform",
+            WebkitBackfaceVisibility: "hidden",
+            backfaceVisibility: "hidden",
           }}
         >
           <div className="animate-fade-in h-full w-full">{children}</div>

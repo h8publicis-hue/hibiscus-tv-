@@ -264,7 +264,15 @@ function RotatedMedia({
 
   if (!swapped) {
     return (
-      <div className="h-full w-full" style={{ transform: "rotate(180deg)" }}>
+      <div
+        className="h-full w-full"
+        style={{
+          transform: "rotate(180deg)",
+          willChange: "transform",
+          WebkitBackfaceVisibility: "hidden",
+          backfaceVisibility: "hidden",
+        }}
+      >
         {children}
       </div>
     );
@@ -279,7 +287,13 @@ function RotatedMedia({
             ? {
                 width: size.height,
                 height: size.width,
-                transform: `translate(-50%, -50%) rotate(${normalized}deg)`,
+                transform: `translate3d(-50%, -50%, 0) rotate(${normalized}deg)`,
+                // Mesmo motivo do PlayerShell: mantém a camada de GPU
+                // pronta pra evitar 1-2 quadros sem girar quando um
+                // <video> novo é montado dentro dessa rotação.
+                willChange: "transform",
+                WebkitBackfaceVisibility: "hidden",
+                backfaceVisibility: "hidden",
               }
             : { visibility: "hidden" }
         }
