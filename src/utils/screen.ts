@@ -1,4 +1,4 @@
-import type { Content } from "@/types";
+import type { Content, Rotacao, Screen } from "@/types";
 import { isWithinPeriod } from "@/utils/date";
 import { PRIORIDADE_PESO } from "@/types";
 import { slugify } from "@/utils/text";
@@ -6,6 +6,20 @@ import { slugify } from "@/utils/text";
 export function generateScreenId(nome: string): string {
   const random = Math.random().toString(36).slice(2, 6);
   return `${slugify(nome)}-${random}`;
+}
+
+/**
+ * Graus de rotação forçada da tela. Prioriza o campo novo (rotacaoGraus,
+ * 4 opções); cai para o campo antigo (rotacaoForcada, booleano = 90°) em
+ * telas cadastradas antes dessa opção existir.
+ */
+export function getScreenRotation(
+  screen: Pick<Screen, "rotacaoGraus" | "rotacaoForcada">
+): Rotacao {
+  if (screen.rotacaoGraus !== undefined && screen.rotacaoGraus !== null) {
+    return screen.rotacaoGraus;
+  }
+  return screen.rotacaoForcada ? 90 : 0;
 }
 
 export function getTvUrl(screenId: string): string {

@@ -9,10 +9,18 @@ import { toast } from "sonner";
 import { Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldError, Select, Textarea } from "@/components/ui/Input";
+import { cn } from "@/lib/utils";
 import { createScreen, updateScreen } from "@/lib/firestore";
-import { generateScreenId, getTvUrl } from "@/utils/screen";
+import { generateScreenId, getScreenRotation, getTvUrl } from "@/utils/screen";
 import { useSectors } from "@/hooks/useSectors";
-import { UNIDADES, type Screen } from "@/types";
+import { UNIDADES, type Rotacao, type Screen } from "@/types";
+
+const ROTACOES: { value: Rotacao; label: string }[] = [
+  { value: 0, label: "0°" },
+  { value: 90, label: "90°" },
+  { value: 180, label: "180°" },
+  { value: 270, label: "270°" },
+];
 
 const schema = z.object({
   nome: z.string().min(2, "Informe o nome da tela"),
@@ -20,7 +28,6 @@ const schema = z.object({
   setor: z.string().min(1, "Selecione um setor"),
   localizacao: z.string().min(2, "Informe a localização"),
   orientacao: z.enum(["horizontal", "vertical"]),
-  rotacaoForcada: z.boolean().optional(),
   restringirHorario: z.boolean().optional(),
   horaAbertura: z.string().optional(),
   horaFechamento: z.string().optional(),
@@ -42,6 +49,9 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
   const [submitting, setSubmitting] = useState(false);
   const isEdit = Boolean(screen);
   const { sectors } = useSectors();
+  const [rotacaoGraus, setRotacaoGraus] = useState<Rotacao>(
+    screen ? getScreenRotation(screen) : 0
+  );
 
   const {
     register,
@@ -57,7 +67,6 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           setor: screen.setor,
           localizacao: screen.localizacao,
           orientacao: screen.orientacao,
-          rotacaoForcada: screen.rotacaoForcada ?? false,
           restringirHorario: Boolean(screen.horarioFuncionamento),
           horaAbertura: screen.horarioFuncionamento?.inicio ?? "08:00",
           horaFechamento: screen.horarioFuncionamento?.fim ?? "17:00",
@@ -68,7 +77,6 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           unidade: "grupo",
           setor: "",
           orientacao: "horizontal",
-          rotacaoForcada: false,
           restringirHorario: false,
           horaAbertura: "08:00",
           horaFechamento: "17:00",
@@ -77,7 +85,6 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
         },
   });
 
-  const orientacao = useWatch({ control, name: "orientacao" });
   const restringirHorario = useWatch({ control, name: "restringirHorario" });
 
   async function onSubmit(data: FormData) {
@@ -86,7 +93,7 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
       const { restringirHorario, horaAbertura, horaFechamento, ...rest } = data;
       const payload = {
         ...rest,
-        rotacaoForcada: data.orientacao === "vertical" ? Boolean(data.rotacaoForcada) : false,
+        rotacaoGraus,
         horarioFuncionamento: restringirHorario
           ? { inicio: horaAbertura!, fim: horaFechamento! }
           : null,
@@ -213,28 +220,32 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
           </Select>
         </div>
 
-        {orientacao === "vertical" && (
-          <div className="sm:col-span-2">
-            <label className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-              <input
-                type="checkbox"
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-hibiscus-600 focus:ring-hibiscus-500"
-                {...register("rotacaoForcada")}
-              />
-              <span>
-                <span className="font-medium text-slate-700">
-                  Forçar rotação por software
-                </span>
-                <span className="mt-0.5 block text-xs text-slate-500">
-                  Marque só se o monitor físico não gira o conteúdo
-                  sozinho. Se a TV/monitor já roda em modo retrato
-                  nativamente, deixe desmarcado — marcar nesse caso vai
-                  girar a imagem errado.
-                </span>
-              </span>
-            </label>
+        <div className="sm:col-span-2">
+          <Label>Forçar rotação por software</Label>
+          <p className="mb-2 text-xs text-slate-500">
+            Gira toda a exibição da tela nesse ângulo — use só se o monitor
+            físico não gira o conteúdo sozinho (ex: monitor comum montado
+            na vertical, ou instalado de cabeça para baixo). Se a TV já
+            roda nativamente na orientação certa, deixe em 0°.
+          </p>
+          <div className="flex gap-2">
+            {ROTACOES.map((r) => (
+              <button
+                key={r.value}
+                type="button"
+                onClick={() => setRotacaoGraus(r.value)}
+                className={cn(
+                  "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                  rotacaoGraus === r.value
+                    ? "border-hibiscus-600 bg-hibiscus-50 text-hibiscus-700"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                )}
+              >
+                {r.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
 
         <div className="sm:col-span-2">
           <label className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">

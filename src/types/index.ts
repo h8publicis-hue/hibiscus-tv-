@@ -55,10 +55,13 @@ export interface Screen {
   screenId: string;
   status: StatusTela;
   orientacao: Orientacao;
-  // Gira o conteúdo via CSS quando a tela física é vertical mas não gira
-  // sozinha (comum em monitores/TVs sem suporte a rotação por hardware).
-  // Deixe desmarcado se o próprio dispositivo já rotaciona a exibição.
-  rotacaoForcada: boolean;
+  // @deprecated usar rotacaoGraus. Mantido só para ler telas antigas
+  // (true equivale a rotacaoGraus: 90) — nunca mais escrito pelo app.
+  rotacaoForcada?: boolean;
+  // Gira toda a exibição via CSS em 0/90/180/270° quando o monitor físico
+  // não gira sozinho (comum em telas verticais sem suporte por hardware,
+  // ou montadas de cabeça para baixo). null/undefined = sem rotação.
+  rotacaoGraus?: Rotacao | null;
   // Restringe a exibição de conteúdo ao horário de funcionamento da
   // unidade (formato "HH:mm"). null/undefined = exibe 24h por dia.
   horarioFuncionamento: { inicio: string; fim: string } | null;

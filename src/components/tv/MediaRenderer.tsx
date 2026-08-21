@@ -213,11 +213,19 @@ function withAutoplay(url: string): string {
 }
 
 /**
- * Gira o conteúdo (imagem/vídeo) em 90/180/270°. Para 90/270, a caixa
- * precisa trocar largura por altura para continuar preenchendo o
+ * Gira o conteúdo (imagem/vídeo/texto/etc) em 90/180/270°. Para 90/270, a
+ * caixa precisa trocar largura por altura para continuar preenchendo o
  * container (que pode ser a tela cheia da TV ou a prévia do admin, de
  * tamanhos bem diferentes) — por isso medimos o container via
  * ResizeObserver em vez de depender de vw/vh fixos.
+ *
+ * O wrapper "relative" próprio é essencial: sem ele, o `position: absolute`
+ * do conteúdo giraria em relação ao ancestral posicionado mais próximo —
+ * que pode ser a própria tela já girada pela orientação forçada da TV
+ * (ver `rotacaoGraus` da tela), somando as duas rotações e quebrando o
+ * layout. Com o wrapper, cada camada de rotação fica isolada na sua
+ * própria caixa, então as duas podem coexistir sem interferir uma na
+ * outra.
  */
 function RotatedMedia({
   rotacao,
@@ -226,7 +234,7 @@ function RotatedMedia({
   rotacao?: Rotacao;
   children: React.ReactNode;
 }) {
-  const anchorRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(
     null
   );
@@ -236,17 +244,17 @@ function RotatedMedia({
 
   useLayoutEffect(() => {
     if (!swapped) return;
-    const parent = anchorRef.current?.parentElement;
-    if (!parent) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
 
     function measure() {
-      if (!parent) return;
-      setSize({ width: parent.clientWidth, height: parent.clientHeight });
+      if (!wrapper) return;
+      setSize({ width: wrapper.clientWidth, height: wrapper.clientHeight });
     }
     measure();
 
     const observer = new ResizeObserver(measure);
-    observer.observe(parent);
+    observer.observe(wrapper);
     return () => observer.disconnect();
   }, [swapped]);
 
@@ -263,20 +271,21 @@ function RotatedMedia({
   }
 
   return (
-    <div
-      ref={anchorRef}
-      className="absolute left-1/2 top-1/2"
-      style={
-        size
-          ? {
-              width: size.height,
-              height: size.width,
-              transform: `translate(-50%, -50%) rotate(${normalized}deg)`,
-            }
-          : { visibility: "hidden" }
-      }
-    >
-      {children}
+    <div ref={wrapperRef} className="relative h-full w-full overflow-hidden">
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={
+          size
+            ? {
+                width: size.height,
+                height: size.width,
+                transform: `translate(-50%, -50%) rotate(${normalized}deg)`,
+              }
+            : { visibility: "hidden" }
+        }
+      >
+        {children}
+      </div>
     </div>
   );
 }

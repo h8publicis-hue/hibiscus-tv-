@@ -14,10 +14,11 @@ import {
 } from "@/lib/firestore";
 import {
   filterPlayableContents,
+  getScreenRotation,
   isWithinBusinessHours,
   sortContentsByPriority,
 } from "@/utils/screen";
-import type { Content, Playlist, Screen } from "@/types";
+import type { Content, Playlist, Rotacao, Screen } from "@/types";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
@@ -222,15 +223,14 @@ export function TvPlayer({
     );
   }
 
-  // Gira via CSS quando a tela é vertical mas o dispositivo físico não
-  // gira sozinho (ver campo "rotacaoForcada" no cadastro da tela). Não
-  // se aplica no modo de prévia do admin, que já tem sua própria caixa.
-  const forceRotate =
-    !previewMode && screen.orientacao === "vertical" && screen.rotacaoForcada;
+  // Gira via CSS quando o dispositivo físico não gira sozinho (ver campo
+  // "rotacaoGraus" no cadastro da tela). Não se aplica no modo de prévia
+  // do admin, que já tem sua própria caixa.
+  const screenRotation: Rotacao = previewMode ? 0 : getScreenRotation(screen);
 
   if (screen.status !== "ativa") {
     return (
-      <PlayerShell showFullscreen rotate={forceRotate}>
+      <PlayerShell showFullscreen rotate={screenRotation}>
         <InstitutionalScreen message="Esta tela está temporariamente inativa." />
       </PlayerShell>
     );
@@ -240,7 +240,7 @@ export function TvPlayer({
   // isso que economiza banda do Supabase enquanto a casa está fechada.
   if (!withinHours) {
     return (
-      <PlayerShell showFullscreen offline={offline} rotate={forceRotate}>
+      <PlayerShell showFullscreen offline={offline} rotate={screenRotation}>
         <InstitutionalScreen message="Fora do horário de funcionamento." />
       </PlayerShell>
     );
@@ -248,7 +248,7 @@ export function TvPlayer({
 
   if (!current) {
     return (
-      <PlayerShell showFullscreen offline={offline} rotate={forceRotate}>
+      <PlayerShell showFullscreen offline={offline} rotate={screenRotation}>
         <InstitutionalScreen message="Nenhum conteúdo programado no momento." />
       </PlayerShell>
     );
@@ -258,7 +258,7 @@ export function TvPlayer({
     <PlayerShell
       showFullscreen={!previewMode}
       offline={offline}
-      rotate={forceRotate}
+      rotate={screenRotation}
     >
       <div key={current.id} className="animate-fade-in h-full w-full">
         <MediaRenderer content={current} onEnded={advance} />
@@ -316,17 +316,19 @@ function PlayerShell({
   children: React.ReactNode;
   showFullscreen?: boolean;
   offline?: boolean;
-  rotate?: boolean;
+  rotate?: Rotacao;
 }) {
+  const swapped = rotate === 90 || rotate === 270;
+
   return (
     <div className="fixed inset-0 h-screen w-screen overflow-hidden bg-black">
       {rotate ? (
         <div
           className="absolute left-1/2 top-1/2"
           style={{
-            width: "100vh",
-            height: "100vw",
-            transform: "translate(-50%, -50%) rotate(90deg)",
+            width: swapped ? "100vh" : "100vw",
+            height: swapped ? "100vw" : "100vh",
+            transform: `translate(-50%, -50%) rotate(${rotate}deg)`,
           }}
         >
           <div className="animate-fade-in h-full w-full">{children}</div>
