@@ -27,37 +27,50 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
     );
   }
 
+  // A rotação é aplicada uma única vez aqui fora, envolvendo qualquer tipo
+  // de conteúdo — não só imagem/vídeo. Um aviso/texto/notícia também pode
+  // precisar girar quando a tela é vertical mas o dispositivo físico não
+  // gira sozinho.
+  return (
+    <RotatedMedia rotacao={content.rotacao}>
+      {renderConteudo(content, className, onEnded, () => setFailed(true))}
+    </RotatedMedia>
+  );
+}
+
+function renderConteudo(
+  content: Content,
+  className: string | undefined,
+  onEnded: (() => void) | undefined,
+  onError: () => void
+) {
   switch (content.tipo) {
     case "imagem":
       return (
         <div className={cn("relative h-full w-full bg-black", className)}>
-          <RotatedMedia rotacao={content.rotacao}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={content.arquivoUrl ?? undefined}
-              alt={content.titulo}
-              className="h-full w-full object-contain"
-              onError={() => setFailed(true)}
-            />
-          </RotatedMedia>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={content.arquivoUrl ?? undefined}
+            alt={content.titulo}
+            className="h-full w-full object-contain"
+            onError={onError}
+          />
         </div>
       );
 
     case "video":
       return (
         <div className={cn("relative h-full w-full bg-black", className)}>
-          <RotatedMedia rotacao={content.rotacao}>
-            <video
-              src={content.arquivoUrl ?? undefined}
-              className="h-full w-full object-contain"
-              autoPlay
-              muted
-              playsInline
-              controls={false}
-              onEnded={onEnded}
-              onError={() => setFailed(true)}
-            />
-          </RotatedMedia>
+          <video
+            src={content.arquivoUrl ?? undefined}
+            className="h-full w-full object-contain"
+            autoPlay
+            muted
+            playsInline
+            controls={false}
+            onEnded={onEnded}
+            onError={onError}
+          />
         </div>
       );
 
@@ -69,7 +82,7 @@ export function MediaRenderer({ content, onEnded, className }: MediaRendererProp
               src={withAutoplay(content.iframeUrl)}
               className="h-full w-full border-0"
               allow="autoplay; encrypted-media; fullscreen"
-              onError={() => setFailed(true)}
+              onError={onError}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-slate-900 text-white/70">

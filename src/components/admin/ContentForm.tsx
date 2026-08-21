@@ -265,7 +265,7 @@ export function ContentForm({ content }: { content?: Content }) {
         arquivoPath: file?.path ?? null,
         texto: NEEDS_TEXT.includes(data.tipo) ? texto : null,
         iframeUrl: data.tipo === "iframe" ? iframeUrl : null,
-        rotacao: NEEDS_FILE.includes(data.tipo) ? rotacao : 0,
+        rotacao,
         cidade: NEEDS_LOCATION.includes(data.tipo) ? cidade : null,
         latitude: NEEDS_LOCATION.includes(data.tipo) ? latitude : null,
         longitude: NEEDS_LOCATION.includes(data.tipo) ? longitude : null,
@@ -365,28 +365,30 @@ export function ContentForm({ content }: { content?: Content }) {
             </div>
           )}
 
-          {NEEDS_FILE.includes(tipo) && (
-            <div className="sm:col-span-2">
-              <Label>Rotação</Label>
-              <div className="flex gap-2">
-                {ROTACOES.map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setRotacao(r.value)}
-                    className={cn(
-                      "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
-                      rotacao === r.value
-                        ? "border-hibiscus-600 bg-hibiscus-50 text-hibiscus-700"
-                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                    )}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
+          <div className="sm:col-span-2">
+            <Label>Rotação</Label>
+            <p className="mb-2 text-xs text-slate-500">
+              Gira este conteúdo — útil quando a tela é vertical mas o
+              monitor não gira sozinho.
+            </p>
+            <div className="flex gap-2">
+              {ROTACOES.map((r) => (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => setRotacao(r.value)}
+                  className={cn(
+                    "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors",
+                    rotacao === r.value
+                      ? "border-hibiscus-600 bg-hibiscus-50 text-hibiscus-700"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  {r.label}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
           {NEEDS_TEXT.includes(tipo) && (
             <div className="sm:col-span-2">
