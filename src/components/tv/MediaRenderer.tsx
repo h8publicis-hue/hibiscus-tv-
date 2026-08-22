@@ -117,10 +117,27 @@ function renderConteudo(
       return (
         <div
           className={cn(
-            "flex h-full w-full flex-col items-center justify-center gap-6 bg-gradient-to-br from-red-600 via-red-700 to-red-900 px-16 text-center text-white",
+            "relative flex h-full w-full flex-col items-center justify-center gap-6 overflow-hidden bg-gradient-to-br from-red-600 via-red-700 to-red-900 px-16 text-center text-white",
             className
           )}
         >
+          {/* Faixas diagonais tipo fita de sinalização no topo/base — dão
+              um ar de "transmissão de emergência" à distância, mesmo
+              antes de ler o texto. */}
+          <div
+            className="absolute inset-x-0 top-0 h-5"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(-45deg, rgba(255,255,255,0.35) 0 16px, transparent 16px 32px)",
+            }}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 h-5"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(-45deg, rgba(255,255,255,0.35) 0 16px, transparent 16px 32px)",
+            }}
+          />
           <div className="relative flex h-20 w-20 items-center justify-center">
             <span className="absolute inset-0 animate-ping rounded-full bg-white/30" />
             <span className="absolute inset-0 animate-pulse rounded-full bg-white/10" />
@@ -146,21 +163,26 @@ function renderConteudo(
       return (
         <div
           className={cn(
-            "flex h-full w-full flex-col items-center justify-center gap-6 bg-gradient-to-br from-hibiscus-500 via-hibiscus-600 to-tropical-700 px-16 text-center text-white",
+            "relative flex h-full w-full flex-col items-center justify-center gap-6 overflow-hidden bg-gradient-to-br from-hibiscus-500 via-hibiscus-600 to-tropical-700 px-16 text-center text-white",
             className
           )}
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/15">
+          {/* Brilhos decorativos grandes e translúcidos nos cantos — dão
+              profundidade e um ar mais "campanha" do que os outros
+              modelos, que usam só um ícone pequeno centralizado. */}
+          <Sparkles className="pointer-events-none absolute -right-20 -top-20 h-[28rem] w-[28rem] rotate-12 text-white/10" />
+          <Sparkles className="pointer-events-none absolute -bottom-24 -left-16 h-80 w-80 -rotate-12 text-white/10" />
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-white/15">
             <Sparkles className="h-10 w-10" />
           </div>
-          <p className="text-base font-semibold uppercase tracking-[0.3em] text-white/80">
+          <p className="relative text-base font-semibold uppercase tracking-[0.3em] text-white/80">
             Promoção
           </p>
-          <h2 className="max-w-5xl text-7xl font-bold leading-tight">
+          <h2 className="relative max-w-5xl text-7xl font-bold leading-tight">
             {content.titulo}
           </h2>
           {content.texto || content.descricao ? (
-            <p className="max-w-4xl text-3xl text-white/90">
+            <p className="relative max-w-4xl text-3xl text-white/90">
               {content.texto || content.descricao}
             </p>
           ) : null}
@@ -264,24 +286,30 @@ function renderConteudo(
 
     case "texto":
     default:
+      // Composição bem diferente de "urgente"/"promocao" de propósito:
+      // essas duas são heróis centralizados; este é um quadro de avisos —
+      // alinhado à esquerda, com uma barra vertical de destaque, pra não
+      // parecer "mais uma tela igual" quando o rodízio alterna entre elas.
       return (
         <div
           className={cn(
-            "flex h-full w-full flex-col items-center justify-center gap-6 bg-gradient-to-br from-tropical-700 via-tropical-800 to-hibiscus-900 px-16 text-center text-white",
+            "flex h-full w-full items-center bg-gradient-to-br from-tropical-700 via-tropical-800 to-hibiscus-900 px-20 text-white",
             className
           )}
         >
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/15">
-            <Megaphone className="h-10 w-10" />
+          <div className="flex max-w-4xl flex-col items-start gap-6 border-l-4 border-white/40 pl-10 text-left">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/15">
+              <Megaphone className="h-8 w-8" />
+            </div>
+            <h2 className="text-6xl font-bold leading-tight">
+              {content.titulo}
+            </h2>
+            {content.texto || content.descricao ? (
+              <p className="max-w-3xl whitespace-pre-line text-2xl text-white/90">
+                {content.texto || content.descricao}
+              </p>
+            ) : null}
           </div>
-          <h2 className="max-w-5xl text-6xl font-bold leading-tight">
-            {content.titulo}
-          </h2>
-          {content.texto || content.descricao ? (
-            <p className="max-w-4xl whitespace-pre-line text-2xl text-white/90">
-              {content.texto || content.descricao}
-            </p>
-          ) : null}
         </div>
       );
   }

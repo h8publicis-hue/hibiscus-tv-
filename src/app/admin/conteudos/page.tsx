@@ -14,6 +14,7 @@ import {
   Copy,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ContentThumbnail } from "@/components/admin/ContentThumbnail";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Spinner } from "@/components/shared/Spinner";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -222,6 +223,7 @@ export default function ConteudosPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                 <tr>
+                  <th className="px-4 py-3 font-medium">Prévia</th>
                   <th className="px-4 py-3 font-medium">Título</th>
                   <th className="px-4 py-3 font-medium">Tipo</th>
                   <th className="px-4 py-3 font-medium">Unidade / Setor</th>
@@ -234,6 +236,9 @@ export default function ConteudosPage() {
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/60">
+                    <td className="px-4 py-3">
+                      <ContentThumbnail content={c} />
+                    </td>
                     <td className="max-w-[240px] truncate px-4 py-3 font-medium text-slate-800">
                       {c.titulo}
                     </td>
