@@ -1,7 +1,16 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { AlertTriangle, ImageOff, Megaphone, Sparkles } from "lucide-react";
+import {
+  AlertTriangle,
+  Cake,
+  HardHat,
+  ImageOff,
+  Megaphone,
+  Sparkles,
+  User,
+  UserPlus,
+} from "lucide-react";
 import type { Content, Rotacao } from "@/types";
 import { cn } from "@/lib/utils";
 import { WeatherCard } from "@/components/tv/WeatherCard";
@@ -158,6 +167,106 @@ function renderConteudo(
         </div>
       );
 
+    case "boasvindas":
+      return (
+        <PhotoTemplate
+          className={className}
+          fotoUrl={content.arquivoUrl}
+          accentFrom="from-tropical-600"
+          accentVia="via-tropical-700"
+          accentTo="to-navy-900"
+          icon={<UserPlus className="h-10 w-10" />}
+          eyebrow="Boas-vindas"
+          titulo={content.titulo}
+          texto={content.texto || content.descricao}
+        />
+      );
+
+    case "avisoseguranca":
+      return (
+        <PhotoTemplate
+          className={className}
+          fotoUrl={content.arquivoUrl}
+          accentFrom="from-amber-500"
+          accentVia="via-amber-600"
+          accentTo="to-navy-950"
+          icon={<HardHat className="h-10 w-10" />}
+          eyebrow="Aviso de Segurança"
+          titulo={content.titulo}
+          texto={content.texto || content.descricao}
+        />
+      );
+
+    case "aniversariante":
+      return (
+        <div
+          className={cn(
+            "flex h-full w-full flex-col gap-8 bg-gradient-to-br from-navy-900 via-navy-950 to-hibiscus-950 px-16 py-14 text-white",
+            className
+          )}
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15">
+              <Cake className="h-7 w-7" />
+            </div>
+            <h2 className="text-4xl font-bold leading-tight">
+              {content.titulo || "Aniversariantes"}
+            </h2>
+          </div>
+          <div
+            className={cn(
+              "grid flex-1 gap-6",
+              content.aniversariantes.length <= 1
+                ? "grid-cols-1"
+                : content.aniversariantes.length === 2
+                ? "grid-cols-2"
+                : content.aniversariantes.length === 3
+                ? "grid-cols-3"
+                : "grid-cols-4"
+            )}
+          >
+            {content.aniversariantes.length === 0 ? (
+              <p className="text-lg text-white/70">
+                Nenhum aniversariante cadastrado.
+              </p>
+            ) : (
+              content.aniversariantes.map((pessoa, i) => (
+                <div
+                  key={`${pessoa.nome}-${i}`}
+                  className="flex flex-col overflow-hidden rounded-2xl bg-white/10"
+                >
+                  <div className="flex aspect-square w-full items-center justify-center overflow-hidden bg-white/10">
+                    {pessoa.fotoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={pessoa.fotoUrl}
+                        alt={pessoa.nome}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-16 w-16 text-white/40" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1 p-4">
+                    <span className="text-2xl font-bold leading-tight">
+                      {pessoa.data}
+                    </span>
+                    <span className="truncate text-lg font-semibold">
+                      {pessoa.nome}
+                    </span>
+                    {pessoa.cargo && (
+                      <span className="truncate text-sm text-white/60">
+                        {pessoa.cargo}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      );
+
     case "texto":
     default:
       return (
@@ -181,6 +290,94 @@ function renderConteudo(
         </div>
       );
   }
+}
+
+/**
+ * Layout compartilhado por "boasvindas" e "avisoseguranca": foto ocupando
+ * a maior parte do quadro com um painel colorido de texto sobreposto no
+ * canto. Sem foto, cai num layout central com ícone — mesmo padrão visual
+ * de "promocao"/"urgente" — para o conteúdo nunca ficar vazio.
+ */
+function PhotoTemplate({
+  className,
+  fotoUrl,
+  accentFrom,
+  accentVia,
+  accentTo,
+  icon,
+  eyebrow,
+  titulo,
+  texto,
+}: {
+  className?: string;
+  fotoUrl: string | null;
+  accentFrom: string;
+  accentVia: string;
+  accentTo: string;
+  icon: React.ReactNode;
+  eyebrow: string;
+  titulo: string;
+  texto: string | null;
+}) {
+  if (!fotoUrl) {
+    return (
+      <div
+        className={cn(
+          "flex h-full w-full flex-col items-center justify-center gap-6 bg-gradient-to-br px-16 text-center text-white",
+          accentFrom,
+          accentVia,
+          accentTo,
+          className
+        )}
+      >
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/15">
+          {icon}
+        </div>
+        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/80">
+          {eyebrow}
+        </p>
+        <h2 className="max-w-4xl text-5xl font-bold leading-tight">
+          {titulo}
+        </h2>
+        {texto && <p className="max-w-3xl text-xl text-white/90">{texto}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("relative h-full w-full bg-black", className)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={fotoUrl}
+        alt={titulo}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 flex flex-col gap-2 bg-gradient-to-br px-16 py-12 text-white",
+          accentFrom,
+          accentVia,
+          accentTo,
+          "bg-opacity-90"
+        )}
+        style={{ opacity: 0.94 }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
+            {icon}
+          </div>
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/80">
+            {eyebrow}
+          </p>
+        </div>
+        <h2 className="max-w-4xl text-4xl font-bold leading-tight">
+          {titulo}
+        </h2>
+        {texto && <p className="max-w-3xl text-lg text-white/90">{texto}</p>}
+      </div>
+    </div>
+  );
 }
 
 /**

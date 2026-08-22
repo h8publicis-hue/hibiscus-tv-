@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Timestamp } from "firebase/firestore";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
   Input,
@@ -30,6 +31,7 @@ import {
   TIPOS_CONTEUDO,
   PRIORIDADES,
   STATUS_CONTEUDO,
+  type Aniversariante,
   type Content,
   type Screen,
   type TipoConteudo,
@@ -55,6 +57,9 @@ const schema = z.object({
     "iframe",
     "clima",
     "noticias",
+    "aniversariante",
+    "boasvindas",
+    "avisoseguranca",
   ]),
   unidade: z.enum(["hibiscus", "mar-cia", "grupo"]),
   setor: z.string().min(1, "Selecione um setor"),
@@ -71,6 +76,14 @@ const NEEDS_FILE: TipoConteudo[] = ["imagem", "video"];
 const NEEDS_TEXT: TipoConteudo[] = ["texto", "promocao", "urgente"];
 const NEEDS_LOCATION: TipoConteudo[] = ["clima"];
 const NEEDS_NEWS_CATEGORY: TipoConteudo[] = ["noticias"];
+// Foto e texto opcionais (não bloqueiam o salvamento se vazios) — o
+// template já cai num layout sem foto sozinho.
+const OPTIONAL_PHOTO_TEMPLATES: TipoConteudo[] = ["boasvindas", "avisoseguranca"];
+const NEEDS_ANIVERSARIANTES: TipoConteudo[] = ["aniversariante"];
+
+function novoAniversariante(): Aniversariante {
+  return { nome: "", cargo: "", data: "", fotoUrl: null };
+}
 
 export function ContentForm({ content }: { content?: Content }) {
   const router = useRouter();
@@ -104,6 +117,23 @@ export function ContentForm({ content }: { content?: Content }) {
     setNoticiaCategorias((prev) =>
       prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]
     );
+  }
+  const [aniversariantes, setAniversariantes] = useState<Aniversariante[]>(
+    content?.aniversariantes && content.aniversariantes.length > 0
+      ? content.aniversariantes
+      : [novoAniversariante()]
+  );
+
+  function updateAniversariante(index: number, patch: Partial<Aniversariante>) {
+    setAniversariantes((prev) =>
+      prev.map((a, i) => (i === index ? { ...a, ...patch } : a))
+    );
+  }
+  function addAniversariante() {
+    setAniversariantes((prev) => [...prev, novoAniversariante()]);
+  }
+  function removeAniversariante(index: number) {
+    setAniversariantes((prev) => prev.filter((_, i) => i !== index));
   }
   const [selectedTelas, setSelectedTelas] = useState<string[]>(
     content?.telas ?? []
@@ -195,6 +225,7 @@ export function ContentForm({ content }: { content?: Content }) {
       latitude,
       longitude,
       noticiaCategorias,
+      aniversariantes,
       unidade: "grupo",
       setor: "recepcao",
       status: "rascunho",
@@ -220,6 +251,7 @@ export function ContentForm({ content }: { content?: Content }) {
       latitude,
       longitude,
       noticiaCategorias,
+      aniversariantes,
       duracaoEmSegundos,
     ]
   );
@@ -254,6 +286,13 @@ export function ContentForm({ content }: { content?: Content }) {
       toast.error("Selecione ao menos uma categoria de notícias.");
       return;
     }
+    if (
+      NEEDS_ANIVERSARIANTES.includes(data.tipo) &&
+      !aniversariantes.some((a) => a.nome.trim())
+    ) {
+      toast.error("Adicione ao menos um aniversariante com nome.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -271,6 +310,9 @@ export function ContentForm({ content }: { content?: Content }) {
         longitude: NEEDS_LOCATION.includes(data.tipo) ? longitude : null,
         noticiaCategorias: NEEDS_NEWS_CATEGORY.includes(data.tipo)
           ? noticiaCategorias
+          : [],
+        aniversariantes: NEEDS_ANIVERSARIANTES.includes(data.tipo)
+          ? aniversariantes.filter((a) => a.nome.trim())
           : [],
         unidade: data.unidade,
         setor: data.setor,
@@ -365,6 +407,22 @@ export function ContentForm({ content }: { content?: Content }) {
             </div>
           )}
 
+          {OPTIONAL_PHOTO_TEMPLATES.includes(tipo) && (
+            <div className="sm:col-span-2">
+              <Label>Foto</Label>
+              <p className="mb-2 text-xs text-slate-500">
+                Opcional — sem foto, o modelo usa um fundo colorido com
+                ícone.
+              </p>
+              <UploadField
+                value={file?.url}
+                path={file?.path}
+                onChange={setFile}
+                accept="imagem"
+              />
+            </div>
+          )}
+
           <div className="sm:col-span-2">
             <Label>Rotação</Label>
             <p className="mb-2 text-xs text-slate-500">
@@ -399,6 +457,92 @@ export function ContentForm({ content }: { content?: Content }) {
                 placeholder="Escreva a mensagem que aparecerá na tela..."
                 className="min-h-[120px]"
               />
+            </div>
+          )}
+
+          {OPTIONAL_PHOTO_TEMPLATES.includes(tipo) && (
+            <div className="sm:col-span-2">
+              <Label>Mensagem</Label>
+              <Textarea
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                placeholder={
+                  tipo === "boasvindas"
+                    ? "Ex: Cargo, setor ou uma mensagem de boas-vindas..."
+                    : "Ex: Detalhe do aviso de segurança..."
+                }
+                className="min-h-[90px]"
+              />
+            </div>
+          )}
+
+          {NEEDS_ANIVERSARIANTES.includes(tipo) && (
+            <div className="sm:col-span-2">
+              <Label required>Aniversariantes</Label>
+              <p className="mb-2 text-xs text-slate-500">
+                Use o título acima para o cabeçalho (ex: &quot;Aniversariantes
+                de Dezembro&quot;) e adicione cada pessoa abaixo.
+              </p>
+              <div className="space-y-3">
+                {aniversariantes.map((pessoa, index) => (
+                  <div
+                    key={index}
+                    className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_1fr_auto_auto]"
+                  >
+                    <Input
+                      placeholder="Nome"
+                      value={pessoa.nome}
+                      onChange={(e) =>
+                        updateAniversariante(index, { nome: e.target.value })
+                      }
+                    />
+                    <Input
+                      placeholder="Cargo/setor (opcional)"
+                      value={pessoa.cargo}
+                      onChange={(e) =>
+                        updateAniversariante(index, { cargo: e.target.value })
+                      }
+                    />
+                    <Input
+                      placeholder="Ex: 12/12"
+                      value={pessoa.data}
+                      onChange={(e) =>
+                        updateAniversariante(index, { data: e.target.value })
+                      }
+                      className="sm:w-28"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeAniversariante(index)}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-50"
+                      title="Remover"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <div className="sm:col-span-4">
+                      <UploadField
+                        value={pessoa.fotoUrl}
+                        onChange={(result) =>
+                          updateAniversariante(index, {
+                            fotoUrl: result?.url ?? null,
+                          })
+                        }
+                        accept="imagem"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={addAniversariante}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Adicionar aniversariante
+              </Button>
             </div>
           )}
 

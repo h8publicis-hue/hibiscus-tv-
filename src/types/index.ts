@@ -22,7 +22,10 @@ export type TipoConteudo =
   | "urgente"
   | "iframe"
   | "clima"
-  | "noticias";
+  | "noticias"
+  | "aniversariante"
+  | "boasvindas"
+  | "avisoseguranca";
 
 // Rotação aplicada na exibição de imagem/vídeo (graus, sentido horário).
 export type Rotacao = 0 | 90 | 180 | 270;
@@ -72,6 +75,13 @@ export interface Screen {
   atualizadoEm: Timestamp;
 }
 
+export interface Aniversariante {
+  nome: string;
+  cargo: string;
+  data: string;
+  fotoUrl: string | null;
+}
+
 export interface Content {
   id: string;
   titulo: string;
@@ -86,6 +96,8 @@ export interface Content {
   latitude: number | null;
   longitude: number | null;
   noticiaCategorias: NoticiaCategoria[];
+  // Usado só no tipo "aniversariante" — lista de pessoas exibidas em grade.
+  aniversariantes: Aniversariante[];
   unidade: Unidade;
   setor: Setor;
   status: StatusConteudo;
@@ -147,6 +159,9 @@ export const TIPOS_CONTEUDO: { value: TipoConteudo; label: string }[] = [
   { value: "iframe", label: "Link/Iframe" },
   { value: "clima", label: "Previsão do Tempo" },
   { value: "noticias", label: "Notícias" },
+  { value: "aniversariante", label: "Aniversariantes" },
+  { value: "boasvindas", label: "Boas-vindas" },
+  { value: "avisoseguranca", label: "Aviso de Segurança" },
 ];
 
 export const PRIORIDADES: { value: Prioridade; label: string }[] = [
