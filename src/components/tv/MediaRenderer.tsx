@@ -153,14 +153,14 @@ function renderConteudo(
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/15">
             <Sparkles className="h-10 w-10" />
           </div>
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/80">
+          <p className="text-base font-semibold uppercase tracking-[0.3em] text-white/80">
             Promoção
           </p>
-          <h2 className="max-w-4xl text-5xl font-bold leading-tight">
+          <h2 className="max-w-5xl text-7xl font-bold leading-tight">
             {content.titulo}
           </h2>
           {content.texto || content.descricao ? (
-            <p className="max-w-3xl text-xl text-white/90">
+            <p className="max-w-4xl text-3xl text-white/90">
               {content.texto || content.descricao}
             </p>
           ) : null}
@@ -271,14 +271,14 @@ function renderConteudo(
             className
           )}
         >
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/15">
-            <Megaphone className="h-8 w-8" />
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/15">
+            <Megaphone className="h-10 w-10" />
           </div>
-          <h2 className="max-w-4xl text-4xl font-bold leading-tight">
+          <h2 className="max-w-5xl text-6xl font-bold leading-tight">
             {content.titulo}
           </h2>
           {content.texto || content.descricao ? (
-            <p className="max-w-3xl whitespace-pre-line text-lg text-white/90">
+            <p className="max-w-4xl whitespace-pre-line text-2xl text-white/90">
               {content.texto || content.descricao}
             </p>
           ) : null}
