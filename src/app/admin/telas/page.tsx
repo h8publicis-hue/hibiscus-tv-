@@ -15,6 +15,8 @@ import {
   Search,
   Maximize2,
   X,
+  AlertTriangle,
+  RotateCw,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -40,6 +42,7 @@ export default function TelasPage() {
   const [deleteTarget, setDeleteTarget] = useState<Screen | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [reloadingId, setReloadingId] = useState<string | null>(null);
+  const [reloadingAll, setReloadingAll] = useState(false);
   const [expandedScreen, setExpandedScreen] = useState<Screen | null>(null);
   const { sectors } = useSectors();
 
@@ -101,6 +104,41 @@ export default function TelasPage() {
     }
   }
 
+  // Uma tela é considerada desatualizada quando o build que ela reportou
+  // no último heartbeat é diferente do build atual deste painel — os
+  // dois vêm do mesmo deploy, então divergirem significa que a tela
+  // ainda não recarregou desde a última publicação.
+  function isOutdated(screen: Screen): boolean {
+    return (
+      isScreenOnline(screen.lastSeenAt) &&
+      Boolean(screen.lastBuildId) &&
+      screen.lastBuildId !== process.env.NEXT_PUBLIC_BUILD_ID
+    );
+  }
+
+  const outdatedOnlineScreens = screens.filter(
+    (s) => isScreenOnline(s.lastSeenAt) && isOutdated(s)
+  );
+
+  async function handleReloadAllOnline() {
+    const targets = screens.filter((s) => isScreenOnline(s.lastSeenAt));
+    if (targets.length === 0) {
+      toast.error("Nenhuma tela está online agora.");
+      return;
+    }
+    setReloadingAll(true);
+    try {
+      await Promise.all(targets.map((s) => requestScreenReload(s.id)));
+      toast.success(
+        `Comando enviado para ${targets.length} tela${targets.length > 1 ? "s" : ""} online.`
+      );
+    } catch {
+      toast.error("Não foi possível recarregar todas as telas.");
+    } finally {
+      setReloadingAll(false);
+    }
+  }
+
   function unidadeLabel(v: string) {
     return UNIDADES.find((u) => u.value === v)?.label ?? v;
   }
@@ -128,14 +166,46 @@ export default function TelasPage() {
         title="Telas"
         description="Gerencie os monitores conectados à plataforma."
         action={
-          <Link href="/admin/telas/nova">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Nova tela
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              loading={reloadingAll}
+              onClick={handleReloadAllOnline}
+              title="Útil depois de publicar uma atualização — telas já ligadas não pegam código novo sozinhas"
+            >
+              <RotateCw className="h-4 w-4" />
+              Recarregar todas online
             </Button>
-          </Link>
+            <Link href="/admin/telas/nova">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Nova tela
+              </Button>
+            </Link>
+          </div>
         }
       />
+
+      {outdatedOnlineScreens.length > 0 && (
+        <div className="mb-6 flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            {outdatedOnlineScreens.length} tela
+            {outdatedOnlineScreens.length > 1 ? "s" : ""} online ainda{" "}
+            {outdatedOnlineScreens.length > 1 ? "estão" : "está"} rodando uma
+            versão antiga do código
+            {" — "}
+            <button
+              type="button"
+              onClick={handleReloadAllOnline}
+              className="font-medium underline underline-offset-2 hover:text-amber-900"
+            >
+              recarregar agora
+            </button>
+            .
+          </span>
+        </div>
+      )}
 
       {screens.length > 0 && (
         <Card className="mb-6 p-4">
@@ -204,6 +274,7 @@ export default function TelasPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((screen) => {
             const online = isScreenOnline(screen.lastSeenAt);
+            const outdated = isOutdated(screen);
             return (
               <Card key={screen.id} className="flex flex-col p-5">
                 <div className="mb-3 flex items-start justify-between gap-2">
@@ -215,7 +286,18 @@ export default function TelasPage() {
                       {unidadeLabel(screen.unidade)} · {setorLabel(screen.setor)}
                     </p>
                   </div>
-                  <StatusBadge status={online ? "online" : "offline"} />
+                  <div className="flex flex-col items-end gap-1">
+                    <StatusBadge status={online ? "online" : "offline"} />
+                    {outdated && (
+                      <span
+                        title="Essa tela ainda não recarregou desde a última publicação"
+                        className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700"
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        Código antigo
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="group relative mb-3 aspect-video w-full overflow-hidden rounded-lg bg-slate-900">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,6 +57,7 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -86,6 +87,18 @@ export function ScreenForm({ screen }: { screen?: Screen }) {
   });
 
   const restringirHorario = useWatch({ control, name: "restringirHorario" });
+
+  // O <select> de setor só consegue mostrar a opção certa depois que as
+  // opções (que vêm de um listener assíncrono) existem no DOM — antes
+  // disso, o navegador não acha nada pra selecionar e mostra em branco,
+  // mesmo com o valor certo já salvo no formulário. Resincroniza assim
+  // que as opções chegam.
+  useEffect(() => {
+    if (screen && sectors.length > 0) {
+      setValue("setor", screen.setor);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectors.length, screen?.setor]);
 
   async function onSubmit(data: FormData) {
     setSubmitting(true);

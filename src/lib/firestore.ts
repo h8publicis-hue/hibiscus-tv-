@@ -113,6 +113,7 @@ export function watchScreenByScreenId(
 export async function sendHeartbeat(screenDocId: string) {
   return updateDoc(doc(db, "screens", screenDocId), {
     lastSeenAt: serverTimestamp(),
+    lastBuildId: process.env.NEXT_PUBLIC_BUILD_ID ?? null,
   });
 }
 

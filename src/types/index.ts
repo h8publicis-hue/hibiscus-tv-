@@ -69,6 +69,11 @@ export interface Screen {
   // unidade (formato "HH:mm"). null/undefined = exibe 24h por dia.
   horarioFuncionamento: { inicio: string; fim: string } | null;
   lastSeenAt: Timestamp | null;
+  // Commit (NEXT_PUBLIC_BUILD_ID) que o player estava rodando no último
+  // heartbeat. Comparado ao build atual do admin pra avisar quando uma
+  // tela já ligada ainda não pegou um deploy novo. undefined/null em
+  // telas antigas que nunca mandaram essa informação.
+  lastBuildId?: string | null;
   observacoes: string;
   reloadRequestedAt: Timestamp | null;
   criadoEm: Timestamp;

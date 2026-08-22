@@ -180,6 +180,7 @@ export function ContentForm({ content }: { content?: Content }) {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -207,6 +208,18 @@ export function ContentForm({ content }: { content?: Content }) {
   });
 
   const { sectors } = useSectors();
+
+  // O <select> de setor só consegue mostrar a opção certa depois que as
+  // opções (que vêm de um listener assíncrono) existem no DOM — antes
+  // disso, o navegador não acha nada pra selecionar e mostra em branco,
+  // mesmo com o valor certo já salvo no formulário. Resincroniza assim
+  // que as opções chegam.
+  useEffect(() => {
+    if (content && sectors.length > 0) {
+      setValue("setor", content.setor);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectors.length, content?.setor]);
 
   const tipo = useWatch({ control, name: "tipo" });
   const titulo = useWatch({ control, name: "titulo" });
