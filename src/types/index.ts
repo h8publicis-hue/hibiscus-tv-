@@ -98,6 +98,12 @@ export interface Content {
   noticiaCategorias: NoticiaCategoria[];
   // Usado só no tipo "aniversariante" — lista de pessoas exibidas em grade.
   aniversariantes: Aniversariante[];
+  // Intervalo mínimo (minutos) entre duas exibições deste conteúdo. Ele
+  // continua no rodízio normalmente, mas se sua vez chegar antes desse
+  // tempo ter passado desde a última vez, é pulado — sem isso, cada
+  // conteúdo aparece uma vez a cada volta completa do rodízio.
+  // null/undefined = sem restrição, aparece em toda volta.
+  intervaloMinutos: number | null;
   unidade: Unidade;
   setor: Setor;
   status: StatusConteudo;

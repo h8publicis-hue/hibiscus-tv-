@@ -19,7 +19,10 @@ const CANVAS_HEIGHT = 1080;
 export function ContentPreview({ content }: { content: Content }) {
   const [vertical, setVertical] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0);
+  // top/left já em pixels absolutos (não porcentagem) — evita a armadilha
+  // clássica de combinar scale() com transform-origin/translate percentual,
+  // que desloca o conteúdo em vez de só encolher no lugar.
+  const [box, setBox] = useState({ scale: 0, left: 0, top: 0 });
 
   const canvasWidth = vertical ? CANVAS_HEIGHT : CANVAS_WIDTH;
   const canvasHeight = vertical ? CANVAS_WIDTH : CANVAS_HEIGHT;
@@ -30,9 +33,15 @@ export function ContentPreview({ content }: { content: Content }) {
 
     function measure() {
       if (!frame) return;
-      setScale(
-        Math.min(frame.clientWidth / canvasWidth, frame.clientHeight / canvasHeight)
+      const scale = Math.min(
+        frame.clientWidth / canvasWidth,
+        frame.clientHeight / canvasHeight
       );
+      setBox({
+        scale,
+        left: (frame.clientWidth - canvasWidth * scale) / 2,
+        top: (frame.clientHeight - canvasHeight * scale) / 2,
+      });
     }
     measure();
 
@@ -51,12 +60,15 @@ export function ContentPreview({ content }: { content: Content }) {
         )}
       >
         <div
-          className="absolute left-1/2 top-1/2 bg-slate-900"
+          className="absolute bg-slate-900"
           style={{
             width: canvasWidth,
             height: canvasHeight,
-            transform: `translate(-50%, -50%) scale(${scale})`,
-            visibility: scale ? "visible" : "hidden",
+            left: box.left,
+            top: box.top,
+            transform: `scale(${box.scale})`,
+            transformOrigin: "top left",
+            visibility: box.scale ? "visible" : "hidden",
           }}
         >
           <MediaRenderer content={content} />

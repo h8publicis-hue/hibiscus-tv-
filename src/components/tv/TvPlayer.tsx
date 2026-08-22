@@ -43,6 +43,12 @@ export function TvPlayer({
   const loggedKeyRef = useRef<string | null>(null);
   const advancedRef = useRef(false);
   const reloadBaselineRef = useRef<number | null | undefined>(undefined);
+  // Quando cada conteúdo apareceu pela última vez nesta sessão do player
+  // — usado para respeitar "intervaloMinutos" (ver advance()). Vive só na
+  // memória: reinicia a cada carregamento da página, o que é aceitável
+  // (o pior caso é um conteúdo aparecer uma vez "cedo demais" logo após
+  // um reload).
+  const lastShownAtRef = useRef<Map<string, number>>(new Map());
 
   // Localiza a tela pelo screenId e mantém em tempo real. Também observa
   // reloadRequestedAt: quando o admin manda "recarregar tela" à distância,
@@ -156,12 +162,35 @@ export function TvPlayer({
   const withinHours =
     previewMode || isWithinBusinessHours(screen?.horarioFuncionamento, now);
 
+  // Um conteúdo com "intervaloMinutos" continua no rodízio normalmente,
+  // mas é pulado se sua vez chegar antes desse tempo ter passado desde a
+  // última exibição. A prévia do admin ignora essa regra — sempre mostra
+  // a volta completa, senão o detector de "loop completo" (usado pra
+  // pausar a prévia) não teria como saber que deu a volta.
+  function isEligible(content: Content, nowMs: number): boolean {
+    if (previewMode || !content.intervaloMinutos) return true;
+    const last = lastShownAtRef.current.get(content.id);
+    if (last === undefined) return true;
+    return nowMs - last >= content.intervaloMinutos * 60_000;
+  }
+
   function advance() {
     if (advancedRef.current) return;
     advancedRef.current = true;
     setCurrentIndex((prev) => {
-      if (playableContents.length === 0) return 0;
-      const nextIndex = (prev + 1) % playableContents.length;
+      const length = playableContents.length;
+      if (length === 0) return 0;
+
+      const nowMs = Date.now();
+      let nextIndex = (prev + 1) % length;
+      for (let i = 0; i < length; i++) {
+        const candidate = (prev + 1 + i) % length;
+        if (isEligible(playableContents[candidate], nowMs)) {
+          nextIndex = candidate;
+          break;
+        }
+      }
+
       // No modo de prévia (usado nos cards do admin), pausa ao completar
       // uma volta inteira pela programação em vez de repetir para sempre —
       // evita consumir dados/CPU com vários previews rodando ao mesmo tempo.
@@ -193,6 +222,13 @@ export function TvPlayer({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current?.id, paused, withinHours]);
+
+  // Marca quando este conteúdo começou a ser exibido, pra respeitar seu
+  // "intervaloMinutos" na próxima vez que a vez dele chegar (ver advance).
+  useEffect(() => {
+    if (!current) return;
+    lastShownAtRef.current.set(current.id, Date.now());
+  }, [current?.id]);
 
   // Registra exibição no screenLogs (uma vez por troca de conteúdo).
   // Não registra em modo de prévia nem fora do horário de funcionamento

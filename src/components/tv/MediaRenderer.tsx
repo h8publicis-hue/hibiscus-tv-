@@ -213,18 +213,7 @@ function renderConteudo(
               {content.titulo || "Aniversariantes"}
             </h2>
           </div>
-          <div
-            className={cn(
-              "grid flex-1 gap-6",
-              content.aniversariantes.length <= 1
-                ? "grid-cols-1"
-                : content.aniversariantes.length === 2
-                ? "grid-cols-2"
-                : content.aniversariantes.length === 3
-                ? "grid-cols-3"
-                : "grid-cols-4"
-            )}
-          >
+          <div className="flex flex-1 flex-wrap content-start gap-6 overflow-hidden">
             {content.aniversariantes.length === 0 ? (
               <p className="text-lg text-white/70">
                 Nenhum aniversariante cadastrado.
@@ -233,7 +222,13 @@ function renderConteudo(
               content.aniversariantes.map((pessoa, i) => (
                 <div
                   key={`${pessoa.nome}-${i}`}
-                  className="flex flex-col overflow-hidden rounded-2xl bg-white/10"
+                  // Largura fixa (não um grid-cols dinâmico baseado na
+                  // quantidade) — com só 1-2 pessoas, um grid de poucas
+                  // colunas faria o card esticar pra ocupar a largura
+                  // toda, e como a foto é quadrada, a altura ia junto,
+                  // estourando a tela. Card de tamanho fixo sempre cabe,
+                  // não importa quantas pessoas tenham na lista.
+                  className="flex w-[420px] flex-col overflow-hidden rounded-2xl bg-white/10"
                 >
                   <div className="flex aspect-square w-full items-center justify-center overflow-hidden bg-white/10">
                     {pessoa.fotoUrl ? (

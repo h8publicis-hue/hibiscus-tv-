@@ -100,6 +100,9 @@ export function ContentForm({ content }: { content?: Content }) {
   const [texto, setTexto] = useState(content?.texto ?? "");
   const [iframeUrl, setIframeUrl] = useState(content?.iframeUrl ?? "");
   const [rotacao, setRotacao] = useState<Rotacao>(content?.rotacao ?? 0);
+  const [intervaloMinutos, setIntervaloMinutos] = useState<string>(
+    content?.intervaloMinutos ? String(content.intervaloMinutos) : ""
+  );
   const [cidadeInput, setCidadeInput] = useState(content?.cidade ?? "");
   const [cidade, setCidade] = useState(content?.cidade ?? "");
   const [latitude, setLatitude] = useState<number | null>(
@@ -226,6 +229,7 @@ export function ContentForm({ content }: { content?: Content }) {
       longitude,
       noticiaCategorias,
       aniversariantes,
+      intervaloMinutos: Number(intervaloMinutos) || null,
       unidade: "grupo",
       setor: "recepcao",
       status: "rascunho",
@@ -252,6 +256,7 @@ export function ContentForm({ content }: { content?: Content }) {
       longitude,
       noticiaCategorias,
       aniversariantes,
+      intervaloMinutos,
       duracaoEmSegundos,
     ]
   );
@@ -314,6 +319,7 @@ export function ContentForm({ content }: { content?: Content }) {
         aniversariantes: NEEDS_ANIVERSARIANTES.includes(data.tipo)
           ? aniversariantes.filter((a) => a.nome.trim())
           : [],
+        intervaloMinutos: Number(intervaloMinutos) || null,
         unidade: data.unidade,
         setor: data.setor,
         status: data.status,
@@ -679,6 +685,24 @@ export function ContentForm({ content }: { content?: Content }) {
               {...register("duracaoEmSegundos", { valueAsNumber: true })}
             />
             <FieldError message={errors.duracaoEmSegundos?.message} />
+          </div>
+
+          <div>
+            <Label htmlFor="intervaloMinutos">
+              Intervalo mínimo entre exibições (minutos)
+            </Label>
+            <Input
+              id="intervaloMinutos"
+              type="number"
+              min={1}
+              placeholder="Deixe vazio para aparecer sempre"
+              value={intervaloMinutos}
+              onChange={(e) => setIntervaloMinutos(e.target.value)}
+            />
+            <p className="mt-1.5 text-xs text-slate-400">
+              Continua no rodízio normalmente, mas é pulado se sua vez
+              chegar antes desse tempo passar desde a última exibição.
+            </p>
           </div>
 
           <div>
