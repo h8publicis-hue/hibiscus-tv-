@@ -405,6 +405,12 @@ function InstitutionalScreen({ message }: { message: string }) {
         <p className="text-3xl font-bold tracking-tight">Hibiscus TV</p>
         <p className="mt-3 text-lg text-white/70">{message}</p>
       </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/logo-grupo-hibiscus-branca.png"
+        alt="Grupo Hibiscus"
+        className="mt-4 h-10 w-auto opacity-80"
+      />
     </div>
   );
 }
