@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   Cake,
@@ -430,6 +430,75 @@ function withAutoplay(url: string): string {
   } catch {
     return url;
   }
+}
+
+/**
+ * Vídeo do player ao vivo (TvPlayer) — nunca desmontado enquanto a tela
+ * está no ar, mesmo quando a programação passa por conteúdos que não são
+ * vídeo. O <video> muda de `src` no lugar (imperativamente, via ref) em
+ * vez de o React recriar o elemento a cada troca.
+ *
+ * O motivo: numa tela com rotação forçada (ver `rotacaoGraus`), o <video>
+ * vive dentro de uma camada girada por CSS. Um <video> recém-criado pelo
+ * DOM precisa ser "promovido" a uma camada de composição da GPU antes da
+ * rotação ficar correta — em desktop isso é instantâneo, mas em Smart TVs
+ * (GPU/compositor bem mais fracos) a promoção demora o suficiente para
+ * aparecer alguns quadros girados errado a cada troca de vídeo, dando a
+ * impressão de que o vídeo "gira" ao entrar. Como o elemento aqui nunca
+ * é destruído, a camada de GPU é criada uma única vez e só é reaproveitada
+ * depois disso — não há promoção repetida para a rotação "atrasar".
+ */
+export function VideoLayer({
+  content,
+  onEnded,
+  active,
+}: {
+  content: Content | null;
+  onEnded?: () => void;
+  active: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const loadedIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !content || content.tipo !== "video") return;
+    if (loadedIdRef.current === content.id) return;
+    loadedIdRef.current = content.id;
+    video.src = content.arquivoUrl ?? "";
+    video.load();
+    if (active) video.play().catch(() => {});
+  }, [content, active]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !loadedIdRef.current) return;
+    if (active) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [active]);
+
+  const rotacao = content?.rotacao ?? 0;
+
+  return (
+    <div
+      className="absolute inset-0 h-full w-full bg-black"
+      style={{ visibility: active ? "visible" : "hidden" }}
+    >
+      <RotatedMedia rotacao={rotacao}>
+        <video
+          ref={videoRef}
+          className="h-full w-full object-contain"
+          muted
+          playsInline
+          controls={false}
+          onEnded={onEnded}
+        />
+      </RotatedMedia>
+    </div>
+  );
 }
 
 /**

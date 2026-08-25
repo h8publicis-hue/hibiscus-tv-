@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Palmtree, Play } from "lucide-react";
-import { MediaRenderer } from "@/components/tv/MediaRenderer";
+import { MediaRenderer, VideoLayer } from "@/components/tv/MediaRenderer";
 import { FullscreenButton } from "@/components/tv/FullscreenButton";
 import { ConnectionIndicator } from "@/components/tv/ConnectionIndicator";
 import {
@@ -296,8 +296,20 @@ export function TvPlayer({
       offline={offline}
       rotate={screenRotation}
     >
-      <div key={current.id} className="animate-fade-in h-full w-full">
-        <MediaRenderer content={current} onEnded={advance} />
+      <div className="relative h-full w-full">
+        <VideoLayer
+          content={current}
+          onEnded={advance}
+          active={current.tipo === "video"}
+        />
+        {current.tipo !== "video" && (
+          <div
+            key={current.id}
+            className="animate-fade-in absolute inset-0 h-full w-full"
+          >
+            <MediaRenderer content={current} onEnded={advance} />
+          </div>
+        )}
       </div>
       <MediaPreloader content={next} />
       {paused && <PausedOverlay onPlay={resumePreview} />}
