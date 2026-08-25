@@ -17,7 +17,35 @@ const FEEDS: Record<string, string> = {
   alagoas: "https://g1.globo.com/rss/g1/al/alagoas/",
 };
 
+// Manchetes de violência/crime/tragédia pesam no clima de recepções,
+// restaurantes etc — filtramos por palavra-chave no título/subtítulo
+// antes de servir ao player. É uma lista heurística (não é análise de
+// conteúdo por IA): captura a maior parte do noticiário pesado do G1
+// sem depender de nenhuma chamada externa extra.
+const HEAVY_CONTENT_KEYWORDS = [
+  "morre", "morreu", "morte", "morta", "morto", "mortos", "mortas",
+  "assassinado", "assassinada", "assassinato", "homicidio", "feminicidio",
+  "estupro", "estuprada", "estuprado", "abuso sexual", "abuso infantil",
+  "importunacao sexual", "pedofilia", "violencia domestica",
+  "violencia sexual", "agressao", "espancado", "espancada", "baleado",
+  "baleada", "esfaqueado", "esfaqueada", "tiroteio", "chacina",
+  "chacinado", "sequestro", "sequestrado", "trafico", "traficante",
+  "assalto", "assaltante", "latrocinio", "execucao", "cadaver",
+  "corpo encontrado", "corpo e encontrado", "carbonizado", "carbonizada",
+  "vitima fatal", "vitimas fatais", "acidente fatal", "tragedia",
+  "suicidio", "enforcado", "enforcada", "atropelado", "atropelada",
+  "atropelamento", "bala perdida", "arma de fogo", "tiro na cabeca",
+  "explosao", "incendio", "maus-tratos", "maus tratos", "crueldade animal",
+  "furto", "furtado", "furtada", "roubo", "roubado", "roubada",
+  "cocaina", "maconha", "entorpecentes",
+  "presa suspeita de", "preso suspeito de", "preso por", "presa por",
+  "suspeito de matar", "suspeita de matar", "acusado de matar",
+  "condenado por matar", "terrorista", "terrorismo", "guerra em",
+  "ataque em",
+];
+
 const ITEMS_PER_FEED = 8;
+const RAW_ITEMS_PER_FEED = 20;
 const MAX_TOTAL_ITEMS = 12;
 
 const corsHeaders = {
@@ -37,6 +65,18 @@ function extractImage(description: unknown): string | null {
   if (typeof description !== "string") return null;
   const match = description.match(/<img[^>]+src="([^"]+)"/);
   return match ? match[1] : null;
+}
+
+function normalize(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+function isHeavyContent(title: string, subtitle: string): boolean {
+  const text = normalize(`${title} ${subtitle}`);
+  return HEAVY_CONTENT_KEYWORDS.some((keyword) => text.includes(keyword));
 }
 
 interface NewsItem {
@@ -61,7 +101,7 @@ async function fetchFeed(categoria: string, feedUrl: string): Promise<NewsItem[]
   const rawItems = data?.rss?.channel?.item;
   return (Array.isArray(rawItems) ? rawItems : [rawItems])
     .filter(Boolean)
-    .slice(0, ITEMS_PER_FEED)
+    .slice(0, RAW_ITEMS_PER_FEED)
     .map((item) => {
       const description = item.description?.__cdata ?? item.description ?? "";
       return {
@@ -72,7 +112,9 @@ async function fetchFeed(categoria: string, feedUrl: string): Promise<NewsItem[]
         imageUrl: extractImage(description),
         categoria,
       };
-    });
+    })
+    .filter((item) => !isHeavyContent(item.title, item.subtitle))
+    .slice(0, ITEMS_PER_FEED);
 }
 
 Deno.serve(async (req) => {
