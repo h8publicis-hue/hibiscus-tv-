@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Palmtree, Play } from "lucide-react";
 import { MediaRenderer, VideoLayer } from "@/components/tv/MediaRenderer";
-import { FullscreenButton } from "@/components/tv/FullscreenButton";
+import { AutoFullscreen } from "@/components/tv/AutoFullscreen";
 import { ConnectionIndicator } from "@/components/tv/ConnectionIndicator";
 import {
   watchScreenByScreenId,
@@ -393,7 +393,7 @@ function PlayerShell({
       ) : (
         <div className="animate-fade-in h-full w-full">{children}</div>
       )}
-      {showFullscreen && <FullscreenButton />}
+      {showFullscreen && <AutoFullscreen />}
       <ConnectionIndicator show={Boolean(offline)} />
     </div>
   );
