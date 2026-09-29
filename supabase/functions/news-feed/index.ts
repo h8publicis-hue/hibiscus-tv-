@@ -20,10 +20,18 @@ const FEEDS: Record<string, { url: string; format: FeedFormat }> = {
   geral: { url: "https://g1.globo.com/rss/g1/", format: "rss2" },
   turismo: { url: "https://g1.globo.com/rss/g1/turismo-e-viagem/", format: "rss2" },
   alagoas: { url: "https://g1.globo.com/rss/g1/al/alagoas/", format: "rss2" },
-  // Google Alertas "Turismo Nordeste", configurado pra entregar como feed
-  // RSS (Atom) em vez de e-mail — ver google.com/alerts.
+  // Google Alertas, configurados pra entregar como feed RSS (Atom) em vez
+  // de e-mail — ver google.com/alerts.
   nordeste: {
     url: "https://www.google.com/alerts/feeds/12072209538546298245/14305717745939241973",
+    format: "atom",
+  },
+  hibiscus: {
+    url: "https://www.google.com/alerts/feeds/12072209538546298245/4882315839834075618",
+    format: "atom",
+  },
+  maceio: {
+    url: "https://www.google.com/alerts/feeds/12072209538546298245/3099495718455677185",
     format: "atom",
   },
 };
@@ -164,6 +172,31 @@ function parseAtom(data: any, categoria: string): NewsItem[] {
   }));
 }
 
+// O Google Alertas não manda imagem nenhuma no feed — só o link da matéria
+// original. Busca a página real e lê a meta tag og:image (praticamente
+// todo portal de notícia marca uma), com timeout curto pra não travar a
+// resposta se algum site estiver lento ou bloquear o fetch. Falha em
+// silêncio: pior caso é o item ficar sem imagem, igual hoje.
+async function fetchOgImage(articleUrl: string): Promise<string | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(articleUrl, {
+      headers: { "User-Agent": "HibiscusTV/1.0 (+https://hibiscus-tv.vercel.app)" },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const html = await res.text();
+    const match =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ??
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchFeed(
   categoria: string,
   feedUrl: string,
@@ -179,10 +212,16 @@ async function fetchFeed(
   const data = parser.parse(xml);
 
   const items = format === "atom" ? parseAtom(data, categoria) : parseRss2(data, categoria);
-  return items
+  const filtered = items
     .slice(0, RAW_ITEMS_PER_FEED)
     .filter((item) => !isHeavyContent(item.title, item.subtitle))
     .slice(0, ITEMS_PER_FEED);
+
+  if (format !== "atom") return filtered;
+
+  return Promise.all(
+    filtered.map(async (item) => ({ ...item, imageUrl: await fetchOgImage(item.link) }))
+  );
 }
 
 Deno.serve(async (req) => {

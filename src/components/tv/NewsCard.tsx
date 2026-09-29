@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Newspaper, ImageOff } from "lucide-react";
+import { Newspaper } from "lucide-react";
 import {
   fetchNews,
   NOTICIA_CATEGORIAS,
@@ -94,40 +94,50 @@ export function NewsCard({ categorias }: NewsCardProps) {
             Nenhuma notícia disponível no momento.
           </p>
         )}
-        {items.slice(0, MAX_VISIBLE).map((item) => (
-          <div
-            key={item.link}
-            className="flex items-center gap-5 rounded-2xl bg-white/10 p-4"
-          >
-            <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl bg-white/10">
-              {item.imageUrl ? (
+        {items.slice(0, MAX_VISIBLE).map((item) => {
+          const topico =
+            NOTICIA_CATEGORIAS.find((c) => c.value === item.categoria)?.label ??
+            item.categoria;
+          return (
+            <div
+              key={item.link}
+              className="flex items-center gap-5 rounded-2xl bg-white/10 p-4"
+            >
+              {/* Sem imagem, o card não reserva espaço de miniatura — evita
+                  simular uma foto que não existe (a maioria das fontes do
+                  Google Alertas não traz imagem). */}
+              {item.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={item.imageUrl}
                   alt=""
-                  className="h-full w-full object-cover"
+                  className="h-20 w-32 shrink-0 rounded-xl object-cover"
                 />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <ImageOff className="h-6 w-6 text-white/40" />
-                </div>
               )}
-            </div>
-            <div className="min-w-0">
-              <p className="line-clamp-2 text-xl font-semibold leading-snug">
-                {item.title}
-              </p>
-              {item.pubDate && (
-                <p className="mt-1 text-sm text-white/50">
-                  {formatDistanceToNow(new Date(item.pubDate), {
-                    locale: ptBR,
-                    addSuffix: true,
-                  })}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                  {topico}
                 </p>
-              )}
+                <p className="mt-1 line-clamp-2 text-xl font-semibold leading-snug">
+                  {item.title}
+                </p>
+                {item.subtitle && (
+                  <p className="mt-1 line-clamp-2 text-base text-white/70">
+                    {item.subtitle}
+                  </p>
+                )}
+                {item.pubDate && (
+                  <p className="mt-1 text-sm text-white/50">
+                    {formatDistanceToNow(new Date(item.pubDate), {
+                      locale: ptBR,
+                      addSuffix: true,
+                    })}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
