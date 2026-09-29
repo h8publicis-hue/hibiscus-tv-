@@ -12,7 +12,11 @@ import {
 } from "@/lib/news";
 
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 minutos
-const MAX_VISIBLE = 5;
+const PAGE_SIZE = 5;
+// Tempo de cada "página" do carrossel — dá pra ler as 5 manchetes com
+// calma antes de passar pra próxima leva, sem esperar a volta inteira da
+// playlist pra ver notícias diferentes.
+const PAGE_INTERVAL_MS = 12_000;
 
 interface NewsCardProps {
   categorias: NoticiaCategoria[] | null;
@@ -21,6 +25,7 @@ interface NewsCardProps {
 export function NewsCard({ categorias }: NewsCardProps) {
   const [items, setItems] = useState<NewsItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [page, setPage] = useState(0);
   const key = categorias?.join(",") ?? "";
 
   useEffect(() => {
@@ -35,7 +40,10 @@ export function NewsCard({ categorias }: NewsCardProps) {
     function load() {
       fetchNews(categorias as NoticiaCategoria[])
         .then((data) => {
-          if (!cancelled) setItems(data);
+          if (!cancelled) {
+            setItems(data);
+            setPage(0);
+          }
         })
         .catch(() => {
           if (!cancelled) setFailed(true);
@@ -50,6 +58,19 @@ export function NewsCard({ categorias }: NewsCardProps) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
+
+  // Carrossel: com mais de uma "página" de manchetes, alterna sozinho
+  // entre elas enquanto essa notícia fica no ar — sem isso, com telas
+  // que voltam várias vezes pro mesmo conteúdo de notícias ao longo do
+  // dia, sempre as mesmas 5 manchetes ficavam presas na tela.
+  const totalPages = items ? Math.ceil(items.length / PAGE_SIZE) : 0;
+  useEffect(() => {
+    if (totalPages <= 1) return;
+    const interval = setInterval(() => {
+      setPage((p) => (p + 1) % totalPages);
+    }, PAGE_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [totalPages]);
 
   const categoriaLabel = (categorias ?? [])
     .map((c) => NOTICIA_CATEGORIAS.find((n) => n.value === c)?.label ?? c)
@@ -88,57 +109,76 @@ export function NewsCard({ categorias }: NewsCardProps) {
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center gap-4">
-        {items.length === 0 && (
+      {items.length === 0 ? (
+        <div className="flex flex-1 items-center justify-center">
           <p className="text-lg text-white/70">
             Nenhuma notícia disponível no momento.
           </p>
-        )}
-        {items.slice(0, MAX_VISIBLE).map((item) => {
-          const topico =
-            NOTICIA_CATEGORIAS.find((c) => c.value === item.categoria)?.label ??
-            item.categoria;
-          return (
-            <div
-              key={item.link}
-              className="flex items-center gap-5 rounded-2xl bg-white/10 p-4"
-            >
-              {/* Sem imagem, o card não reserva espaço de miniatura — evita
-                  simular uma foto que não existe (a maioria das fontes do
-                  Google Alertas não traz imagem). */}
-              {item.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.imageUrl}
-                  alt=""
-                  className="h-20 w-32 shrink-0 rounded-xl object-cover"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
-                  {topico}
-                </p>
-                <p className="mt-1 line-clamp-2 text-xl font-semibold leading-snug">
-                  {item.title}
-                </p>
-                {item.subtitle && (
-                  <p className="mt-1 line-clamp-2 text-base text-white/70">
-                    {item.subtitle}
-                  </p>
+        </div>
+      ) : (
+        <div
+          key={page}
+          className="animate-fade-in flex flex-1 flex-col justify-center gap-4"
+        >
+          {items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE).map((item) => {
+            const topico =
+              NOTICIA_CATEGORIAS.find((c) => c.value === item.categoria)?.label ??
+              item.categoria;
+            return (
+              <div
+                key={item.link}
+                className="flex items-center gap-5 rounded-2xl bg-white/10 p-4"
+              >
+                {/* Sem imagem, o card não reserva espaço de miniatura — evita
+                    simular uma foto que não existe (a maioria das fontes do
+                    Google Alertas não traz imagem). */}
+                {item.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    className="h-20 w-32 shrink-0 rounded-xl object-cover"
+                  />
                 )}
-                {item.pubDate && (
-                  <p className="mt-1 text-sm text-white/50">
-                    {formatDistanceToNow(new Date(item.pubDate), {
-                      locale: ptBR,
-                      addSuffix: true,
-                    })}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                    {topico}
                   </p>
-                )}
+                  <p className="mt-1 line-clamp-2 text-xl font-semibold leading-snug">
+                    {item.title}
+                  </p>
+                  {item.subtitle && (
+                    <p className="mt-1 line-clamp-2 text-base text-white/70">
+                      {item.subtitle}
+                    </p>
+                  )}
+                  {item.pubDate && (
+                    <p className="mt-1 text-sm text-white/50">
+                      {formatDistanceToNow(new Date(item.pubDate), {
+                        locale: ptBR,
+                        addSuffix: true,
+                      })}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          {Array.from({ length: totalPages }).map((_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 rounded-full transition-all ${
+                i === page ? "w-6 bg-white/80" : "w-1.5 bg-white/30"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -58,8 +58,11 @@ const HEAVY_CONTENT_KEYWORDS = [
   "furto", "furtado", "furtada", "roubo", "roubado", "roubada",
   "cocaina", "maconha", "entorpecentes",
   "presa suspeita de", "preso suspeito de", "preso por", "presa por",
-  "suspeito de matar", "suspeita de matar", "acusado de matar",
-  "condenado por matar", "terrorista", "terrorismo", "guerra em",
+  // Formas do verbo "matar" (em vez de frases fixas tipo "condenado por
+  // matar") — uma frase fixa não pega variações como "condenado a 22 anos
+  // de prisão por matar", onde algo se intromete entre as duas palavras.
+  "matar", "matou", "matado", "matada",
+  "terrorista", "terrorismo", "guerra em",
   "ataque em",
 ];
 
