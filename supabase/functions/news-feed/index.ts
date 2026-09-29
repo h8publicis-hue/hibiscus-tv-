@@ -11,10 +11,21 @@ import { XMLParser } from "npm:fast-xml-parser@4";
 // busca cada feed em paralelo e devolve uma lista única, mesclada por
 // data de publicação e sem duplicatas.
 
-const FEEDS: Record<string, string> = {
-  geral: "https://g1.globo.com/rss/g1/",
-  turismo: "https://g1.globo.com/rss/g1/turismo-e-viagem/",
-  alagoas: "https://g1.globo.com/rss/g1/al/alagoas/",
+// "rss2" = formato clássico do G1 (<rss><channel><item>). "atom" = formato
+// do Google Alertas (<feed><entry>) — estrutura de tags e datas diferentes,
+// por isso cada categoria também guarda o formato do próprio feed.
+type FeedFormat = "rss2" | "atom";
+
+const FEEDS: Record<string, { url: string; format: FeedFormat }> = {
+  geral: { url: "https://g1.globo.com/rss/g1/", format: "rss2" },
+  turismo: { url: "https://g1.globo.com/rss/g1/turismo-e-viagem/", format: "rss2" },
+  alagoas: { url: "https://g1.globo.com/rss/g1/al/alagoas/", format: "rss2" },
+  // Google Alertas "Turismo Nordeste", configurado pra entregar como feed
+  // RSS (Atom) em vez de e-mail — ver google.com/alerts.
+  nordeste: {
+    url: "https://www.google.com/alerts/feeds/12072209538546298245/14305717745939241973",
+    format: "atom",
+  },
 };
 
 // Manchetes de violência/crime/tragédia pesam no clima de recepções,
@@ -67,6 +78,42 @@ function extractImage(description: unknown): string | null {
   return match ? match[1] : null;
 }
 
+// O título/resumo do Google Alertas vem com tags <b> destacando o termo
+// buscado e com entidades HTML escapadas duas vezes (ex: "&amp;nbsp;"),
+// já que o feed inteiro é XML mas o conteúdo dentro é HTML por natureza.
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCharCode(Number(code)));
+}
+
+function stripHtml(text: string): string {
+  return decodeHtmlEntities(text.replace(/<[^>]+>/g, "")).trim();
+}
+
+// O link de cada item do Google Alertas passa por um redirecionador
+// (google.com/url?...&url=<destino real>&...) — extrai o destino real pra
+// não fazer o player depender de um redirect extra do Google.
+function extractRealLink(googleUrl: string): string {
+  try {
+    return new URL(googleUrl).searchParams.get("url") ?? googleUrl;
+  } catch {
+    return googleUrl;
+  }
+}
+
+function textOf(node: unknown): string {
+  if (node && typeof node === "object") {
+    return String((node as Record<string, unknown>)["#text"] ?? "");
+  }
+  return String(node ?? "");
+}
+
 function normalize(text: string): string {
   return text
     .normalize("NFD")
@@ -88,7 +135,40 @@ interface NewsItem {
   categoria: string;
 }
 
-async function fetchFeed(categoria: string, feedUrl: string): Promise<NewsItem[]> {
+// deno-lint-ignore no-explicit-any
+function parseRss2(data: any, categoria: string): NewsItem[] {
+  const rawItems = data?.rss?.channel?.item;
+  return (Array.isArray(rawItems) ? rawItems : [rawItems]).filter(Boolean).map((item) => {
+    const description = item.description?.__cdata ?? item.description ?? "";
+    return {
+      title: String(item.title ?? "").trim(),
+      subtitle: String(item["atom:subtitle"] ?? "").trim(),
+      link: String(item.link ?? ""),
+      pubDate: String(item.pubDate ?? ""),
+      imageUrl: extractImage(description),
+      categoria,
+    };
+  });
+}
+
+// deno-lint-ignore no-explicit-any
+function parseAtom(data: any, categoria: string): NewsItem[] {
+  const rawEntries = data?.feed?.entry;
+  return (Array.isArray(rawEntries) ? rawEntries : [rawEntries]).filter(Boolean).map((entry) => ({
+    title: stripHtml(textOf(entry.title)),
+    subtitle: stripHtml(textOf(entry.content)),
+    link: extractRealLink(String(entry.link?.["@_href"] ?? "")),
+    pubDate: String(entry.published ?? ""),
+    imageUrl: null,
+    categoria,
+  }));
+}
+
+async function fetchFeed(
+  categoria: string,
+  feedUrl: string,
+  format: FeedFormat
+): Promise<NewsItem[]> {
   const res = await fetch(feedUrl, {
     headers: { "User-Agent": "HibiscusTV/1.0 (+https://hibiscus-tv.vercel.app)" },
   });
@@ -98,21 +178,9 @@ async function fetchFeed(categoria: string, feedUrl: string): Promise<NewsItem[]
   const parser = new XMLParser({ ignoreAttributes: false, cdataPropName: "__cdata" });
   const data = parser.parse(xml);
 
-  const rawItems = data?.rss?.channel?.item;
-  return (Array.isArray(rawItems) ? rawItems : [rawItems])
-    .filter(Boolean)
+  const items = format === "atom" ? parseAtom(data, categoria) : parseRss2(data, categoria);
+  return items
     .slice(0, RAW_ITEMS_PER_FEED)
-    .map((item) => {
-      const description = item.description?.__cdata ?? item.description ?? "";
-      return {
-        title: String(item.title ?? "").trim(),
-        subtitle: String(item["atom:subtitle"] ?? "").trim(),
-        link: String(item.link ?? ""),
-        pubDate: String(item.pubDate ?? ""),
-        imageUrl: extractImage(description),
-        categoria,
-      };
-    })
     .filter((item) => !isHeavyContent(item.title, item.subtitle))
     .slice(0, ITEMS_PER_FEED);
 }
@@ -140,7 +208,7 @@ Deno.serve(async (req) => {
 
   try {
     const results = await Promise.all(
-      categorias.map((c) => fetchFeed(c, FEEDS[c]))
+      categorias.map((c) => fetchFeed(c, FEEDS[c].url, FEEDS[c].format))
     );
 
     const seen = new Set<string>();

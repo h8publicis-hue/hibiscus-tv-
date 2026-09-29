@@ -1,11 +1,12 @@
 const FUNCTIONS_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}/functions/v1`;
 
-export type NoticiaCategoria = "geral" | "turismo" | "alagoas";
+export type NoticiaCategoria = "geral" | "turismo" | "alagoas" | "nordeste";
 
 export const NOTICIA_CATEGORIAS: { value: NoticiaCategoria; label: string }[] = [
   { value: "geral", label: "Geral" },
   { value: "turismo", label: "Turismo e Viagem" },
   { value: "alagoas", label: "Alagoas" },
+  { value: "nordeste", label: "Turismo Nordeste" },
 ];
 
 export interface NewsItem {
